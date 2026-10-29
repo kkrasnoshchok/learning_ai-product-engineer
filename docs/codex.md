@@ -22,3 +22,9 @@ New thread: "Create a new learning program with id `my-program` titled `My Progr
 - Approve command execution and file writes under `programs/` when prompted.
 - Sandboxed runs must be able to write inside the project folder; the tooling needs no network.
 - Verified here: the repository, scripts, and tests. The Codex Desktop UI steps follow its documented `AGENTS.md` behavior but were not exercised in this session.
+
+## Subagents
+`.codex/agents/*.toml` defines `curriculum_designer`, `researcher`, `examiner` (keys: `name`, `description`, `developer_instructions`).
+`.codex/config.toml` sets `[agents] max_concurrent_threads_per_session = 3`. Ask explicitly: "spawn the examiner to ...".
+Codex custom agents inherit the parent sandbox, so read-only behaviour is by instruction, not enforcement.
+Not verified: no Codex binary exists in the authoring environment, so delegation in Codex Desktop was never run.

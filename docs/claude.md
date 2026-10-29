@@ -21,3 +21,9 @@ New session, then `/new-program my-program My Program Title` (or ask in plain wo
 - Approve the `python3 scripts/los.py ...` commands (and writes under `programs/`) when prompted; you can allow-list `python3 scripts/los.py` in your permission settings.
 - If a session accidentally covers two programs, close it and start fresh. The protocol forbids reading across programs.
 - Run `make test` after changing anything in `engine/` or `scripts/`.
+
+## Subagents
+`.claude/agents/` defines `curriculum-designer`, `researcher`, `examiner` (YAML frontmatter: `name`, `description`, `tools`).
+Claude delegates automatically from the descriptions, or ask: "have the examiner write a rubric-based item for <competency>".
+Subagents are read-only; Claude (the Tutor) logs and writes. Check them with `/agents`. Verified: file syntax and tests;
+live delegation in the desktop GUI was not exercised here.

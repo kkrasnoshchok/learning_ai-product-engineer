@@ -15,7 +15,9 @@ desktop subscription session and plain shell commands.
 5. Never edit existing lines of `logs/assessments.jsonl`. Append only via `los.py log`.
 6. Do not invent curriculum from this repo's defaults: competencies come from the
    program's `program.yaml`. To create a program, follow `engine/protocol/05-program-authoring.md`.
-7. No network calls, API keys, or third-party packages are needed or allowed.
+7. No API keys or third-party packages. `scripts/` makes no network calls. Only the Researcher
+   subagent may use the host's native web tools, and only when the learner asks for research.
+8. You (the primary agent) are the Tutor and the **only writer**. Subagents return text; you persist it.
 
 ## Protocol
 
@@ -27,6 +29,12 @@ Read `engine/protocol/README.md`, then the step you are in:
 | "assess me" / during a lesson | `03-assessment.md` |
 | "end / close the lesson" | `04-session-close.md` |
 | "new program" | `05-program-authoring.md` |
+
+## Roles and policies
+
+Tutor = you. Optional subagents: `curriculum_designer`, `researcher`, `examiner` (Codex:
+`.codex/agents/`; Claude: `.claude/agents/`, hyphenated names). Roles: `engine/roles/`.
+Policies (teaching, assessment, delegation): `engine/policies/README.md`. Delegate with minimal context.
 
 ## Commands (all offline, stdlib Python 3)
 

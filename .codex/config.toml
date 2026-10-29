@@ -1,0 +1,4 @@
+# Project-scoped Codex settings (applies once the project is trusted).
+[agents]
+# Subagents never write state (engine/policies/delegation.md); this just bounds fan-out.
+max_concurrent_threads_per_session = 3

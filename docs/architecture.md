@@ -37,3 +37,18 @@ The environment needs zero installs and works offline, matching the subscription
 - New assessment kinds: add to `assessment-event.schema.yaml`, `learner-preferences.schema.yaml`, and `03-assessment.md`.
 - Different mastery model: change `derive_mastery` in `model.py`; programs' `mastery_policy` and the drift check follow.
 - Schema changes: bump `schema_version` and add a migration note here.
+
+## Multi-agent layer (Phase 2)
+
+One primary agent (Tutor) plus three optional, read-only subagents (Curriculum Designer, Researcher, Examiner).
+
+- **Behaviour is defined once** in `engine/roles/` and `engine/policies/`. The agent files in `.claude/agents/*.md`
+  and `.codex/agents/*.toml` are thin wrappers (name, description, tool limits, pointer to the role file).
+- **Single writer.** Only the Tutor runs `los.py log/close` or edits program files, so parallel subagents cannot corrupt
+  authoritative state. Claude enforces this with a `tools` allowlist (no Write/Edit/Bash). Codex custom agents cannot
+  override `sandbox_mode` per agent, so there it is enforced by instruction and guarded by tests, not by the sandbox.
+- **Independence.** The Examiner never sees the tutoring dialogue and cannot log; assisted work caps below 0.9.
+- **Mastery logic unchanged.** Scoring bands, EWMA mastery and thresholds are untouched; policies only constrain how
+  events are produced. Misconceptions travel in event `--notes` and the lesson `Handoff` (no schema change).
+- **Network.** Only the Researcher has web tools (Claude `WebSearch`/`WebFetch`); the repo's code stays offline.
+- **Not in Phase 2:** program onboarding, curriculum research workflow, lesson lifecycle changes.

@@ -9,5 +9,7 @@ run lessons, never *what* to teach (that is in each program's `program.yaml`).
 4. [Session close](04-session-close.md): handoff, derived state, validation
 5. [Program authoring](05-program-authoring.md): creating a new program
 
+Cross-cutting: [policies](../policies/README.md) (teaching, assessment, delegation) and [roles](../roles/README.md).
+
 Precedence: learner's explicit request in chat > this protocol > a program's own `materials/`.
 (A learner may skip steps; log what actually happened, not what was planned.)
