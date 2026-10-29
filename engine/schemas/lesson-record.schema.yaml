@@ -36,3 +36,18 @@ properties:
     uniqueItems: true
     items:
       $ref: '#/$defs/id'
+  # Optional, written by `lesson complete` / `lesson abandon`; older records simply lack them.
+  session:
+    type: string
+    pattern: '^lesson-[0-9]{3}$'
+  curriculum_revision:
+    type: integer
+    minimum: 1
+  objectives:
+    type: array
+    uniqueItems: true
+    items:
+      type: string
+      pattern: '^[a-z0-9]+(-[a-z0-9]+)*:[a-z0-9]+(-[a-z0-9]+)*$'
+  assessment_status:
+    enum: [not_assessed, logged]

@@ -8,7 +8,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from . import design, model, onboarding, miniyaml
+from . import design, lifecycle, model, onboarding, miniyaml
 
 
 def _print_report(report: model.Report, strict: bool) -> int:
@@ -38,6 +38,10 @@ def build_parser() -> argparse.ArgumentParser:
     c = sub.add_parser("context", help="print the context pack for a fresh lesson")
     c.add_argument("program")
     c.add_argument("--today", help="YYYY-MM-DD (default: today)")
+    c.add_argument("--max-chars", type=int, help="size budget for the pack (default: program lesson_policy.context_max_chars or 16000)")
+    c.add_argument("--objective", help="focus the pack on this objective ref (<competency>:<objective>)")
+
+    sub.add_parser("programs", help="list programs and any open lesson (for choosing where to work)")
 
     lg = sub.add_parser("log", help="append one assessment event and refresh mastery")
     lg.add_argument("program")
@@ -77,7 +81,90 @@ def build_parser() -> argparse.ArgumentParser:
     o.add_argument("--date")
     osub.add_parser("list", help="list onboardings")
     _design_parsers(sub)
+    _lesson_parsers(sub)
     return p
+
+
+def _lesson_parsers(sub) -> None:
+    ls = sub.add_parser("lesson", help="lesson lifecycle: next/start/status/brief/note/pause/resume/complete/abandon")
+    g = ls.add_subparsers(dest="lcmd", required=True)
+
+    def cmd(name, helptext, *flags):
+        c = g.add_parser(name, help=helptext)
+        c.add_argument("program")
+        for f in flags:
+            if f == "ts":
+                c.add_argument("--ts", help=argparse.SUPPRESS)
+            elif f == "provider":
+                c.add_argument("--provider", choices=["claude", "codex", "other"], help="which desktop app hosts this conversation")
+                c.add_argument("--thread", help="the conversation's reference/title, if the app exposes one")
+            elif f == "select":
+                c.add_argument("--objective", help="learner-chosen objective ref; default is the recommendation")
+                c.add_argument("--override-rationale", help="why unmet prerequisites are being skipped")
+                c.add_argument("--statement", help="the learner's approving words for the override")
+                c.add_argument("--confirm", action="store_true", help="only after the learner agreed in chat")
+            elif f == "file":
+                c.add_argument("--file", required=True, help="YAML file, or - for stdin")
+        return c
+
+    cmd("next", "recommend the next objective (writes nothing)")
+    cmd("start", "plan (if needed) and activate a lesson; idempotent", "select", "provider", "ts")
+    cmd("status", "open lesson and recent history")
+    cmd("brief", "resume brief for the open lesson (the context pack)").add_argument("--max-chars", type=int)
+    cmd("note", "record concepts/attempts/misconceptions/questions during the lesson", "file", "ts")
+    cmd("pause", "pause the active lesson", "ts").add_argument("--note")
+    cmd("resume", "resume a paused lesson in this conversation", "provider", "ts").add_argument("--takeover", action="store_true", help="the lesson is active in a conversation that no longer exists")
+    cmd("await-assessment", "instruction done; independent assessment still pending", "ts")
+    c = cmd("complete", "close the lesson: write the record, refresh derived state", "ts")
+    c.add_argument("--file", help="closure YAML (summary, handoff, next_action, ...), or - for stdin; optional only when finishing an interrupted close")
+    c.add_argument("--outcome", choices=["completed", "partial"], default="completed")
+    c = cmd("abandon", "abandon the lesson (needs learner confirmation)", "ts")
+    c.add_argument("--reason")
+    c.add_argument("--confirm", action="store_true", help="only after the learner said yes in chat")
+
+
+def _lesson(args) -> int:
+    root, c, pid = args.root, args.lcmd, args.program
+    if c == "next":
+        rec = lifecycle.recommend(root, pid)
+        print(lifecycle.format_recommendation(rec))
+        return 0 if rec["pick"] else 1
+    if c == "status":
+        print(lifecycle.status_text(root, pid))
+        return 0
+    if c == "brief":
+        if lifecycle.open_session(root, pid) is None:
+            raise ValueError("no open lesson; use `lesson next` / `lesson start`")
+        print(model.build_context(root, pid, max_chars=args.max_chars))
+        return 0
+    if c == "start":
+        doc, what = lifecycle.start_lesson(root, pid, objective=args.objective, override_rationale=args.override_rationale,
+                                           statement=args.statement, confirm=args.confirm, provider=args.provider,
+                                           thread=args.thread, ts=args.ts)
+        print(f"{doc['id']}: {what}")
+        print("\n".join(lifecycle._session_lines(doc)))
+        print("next: `lesson brief` for the briefing, then teach (protocol 08)")
+        return 0
+    if c == "resume":
+        doc, what = lifecycle.resume_lesson(root, pid, provider=args.provider, thread=args.thread, takeover=args.takeover, ts=args.ts)
+    elif c == "pause":
+        doc, what = lifecycle.pause_lesson(root, pid, note=args.note, ts=args.ts)
+    elif c == "await-assessment":
+        doc, what = lifecycle.await_assessment(root, pid, ts=args.ts)
+    elif c == "note":
+        doc = lifecycle.add_notes(root, pid, _read_patch(args), args.ts)
+        what = "notes recorded"
+    elif c == "complete":
+        doc, what = lifecycle.complete_lesson(root, pid, _read_patch(args) if args.file else None, outcome=args.outcome, ts=args.ts)
+    elif c == "abandon":
+        doc, what = lifecycle.abandon_lesson(root, pid, reason=args.reason, confirm=args.confirm, ts=args.ts)
+    print(f"{doc['id']}: {what} (status {doc['status']})")
+    if c in ("complete", "abandon"):
+        cl = doc["closure"]
+        print(f"assessment: {cl['assessment']['status']}"
+              + (" (instruction only; mastery unchanged)" if cl["assessment"]["status"] == "not_assessed" else ""))
+        print("next: tell the learner to start the next lesson in a NEW conversation")
+    return 0
 
 
 def _design_parsers(sub) -> None:
@@ -250,7 +337,19 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.cmd == "context":
             today = date.fromisoformat(args.today) if args.today else None
-            print(model.build_context(args.root, args.program, today))
+            print(model.build_context(args.root, args.program, today, max_chars=args.max_chars, objective=args.objective))
+            return 0
+        if args.cmd == "lesson":
+            return _lesson(args)
+        if args.cmd == "programs":
+            for pid in model.list_programs(args.root):
+                try:
+                    prog = miniyaml.loads((model.program_dir(args.root, pid) / "program.yaml").read_text("utf-8"))
+                    cur = lifecycle.open_session(args.root, pid)
+                    print(f"{pid}: {prog['title']} [{prog['status']}]"
+                          + (f"; open lesson {cur['id']} {cur['status']} on {cur['objectives'][0]}" if cur else ""))
+                except (ValueError, OSError):
+                    print(f"{pid}: (unreadable; run `validate`)")
             return 0
         if args.cmd == "log":
             ev = model.append_event(args.root, args.program, lesson=args.lesson, competency=args.competency,
@@ -261,7 +360,7 @@ def main(argv: list[str] | None = None) -> int:
             return _print_report(model.rebuild(args.root, args.program), False)
         if args.cmd == "close":
             return _print_report(model.close_lesson(args.root, args.program, args.lesson), False)
-    except (ValueError, OSError) as exc:
+    except (ValueError, OSError, miniyaml.YamlError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     return 2

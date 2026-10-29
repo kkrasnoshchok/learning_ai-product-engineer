@@ -11,6 +11,8 @@ run lessons, never *what* to teach (that is in each program's `program.yaml`).
 6. [Program onboarding](06-program-onboarding.md): learner goal to approved program spec (precedes 05)
 7. [Research and curriculum](07-research-and-curriculum.md): approved spec to researched, personalized, approved curriculum (replaces the manual drafting in 05 when used)
 
+8. [Lesson lifecycle](08-lesson-lifecycle.md): planning, state machine, pause/resume/complete/abandon (with 02 as the tutoring dialogue)
+
 Cross-cutting: [policies](../policies/README.md) (teaching, assessment, delegation) and [roles](../roles/README.md).
 
 Precedence: learner's explicit request in chat > this protocol > a program's own `materials/`.

@@ -8,6 +8,7 @@
 | `programs/<id>/logs/assessments.jsonl` | JSONL | `assessment-event` | append-only |
 | `programs/<id>/state/mastery.yaml` | YAML | `mastery` | derived |
 | `programs/<id>/state/progress.yaml` | YAML | `progress` | derived |
+| `programs/<id>/sessions/NNN.yaml` | YAML | `lesson-session` | mutable lifecycle record via `los.py lesson`; never evidence |
 | `programs/<id>/materials/*.md` | Markdown | none | authored |
 
 Schemas are in `engine/schemas/*.schema.yaml` (JSON-Schema subset written in YAML). All carry `schema_version: 1`.
@@ -44,3 +45,11 @@ Schemas: `research-plan`, `research-registry`, `competency-map`, `curriculum` (+
 
 ## Onboarding state
 `onboarding/<id>/state.yaml` (schema `engine/schemas/onboarding.schema.yaml`): status `draft | in_review | approved`, a `revision` counter, and the sections `goal`, `profile`, `constraints`, `assumptions`, `open_questions` (+ `approval` once approved). `goals.md` and `program.draft.yaml` beside it are derived previews. On approval the sections are frozen into `programs/<id>/program.yaml` under the optional `spec` key, with a placeholder curriculum.
+
+## Lesson sessions (`programs/<id>/sessions/NNN.yaml`, Phase 5)
+Schema `lesson-session`: `id` (`lesson-NNN`), `status` (planned | active | paused | awaiting_assessment | completed | abandoned), `curriculum`
+(`pinned` with revision + sha256, or `legacy`), `selection` (auto | manual | override, reason, optional learner-approved override), `objectives`
+(one `<competency>:<objective>` ref), `outcomes`, `materials` (source + status at plan time), optional `provider`, `notes` (concepts, attempts with
+assistance level, misconceptions, open questions), `closure` (outcome, summary, handoff, next_action, assessment `{status, refs}`), `history`.
+The lesson record frontmatter gained optional `session`, `curriculum_revision`, `objectives`, `assessment_status`; `program.yaml` `lesson_policy`
+gained optional `context_max_chars`. Older files remain valid unchanged. See `docs/lessons.md`.

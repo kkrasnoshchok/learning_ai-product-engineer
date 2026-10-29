@@ -16,6 +16,9 @@ Auth: your ChatGPT/Codex subscription sign-in in the desktop app. Nothing in thi
 2. Say: "Start a lesson on my-program." Codex runs `python3 scripts/los.py context my-program` and proceeds per the protocol.
 3. At the end say: "Close the lesson." Codex writes the lesson record and runs `python3 scripts/los.py close my-program --lesson N`.
 
+## Lesson lifecycle (Phase 5)
+New thread, then "Start a lesson on my-program" (resumes an open lesson or recommends the next objective), "Pause the lesson", "Close the lesson". Prompt files: `lesson`, `pause-lesson`, `close-lesson`. See `docs/lessons.md`. Not exercised in Codex Desktop here.
+
 ## Optional shortcut prompts
 `adapters/codex/prompts/*.md` mirror the Claude slash commands (`$1`, `$2` positional arguments). If your Codex version supports custom prompt files, copy them into its prompts folder (commonly `~/.codex/prompts/`); otherwise ignore them, since the plain-language phrases above work with `AGENTS.md` alone.
 

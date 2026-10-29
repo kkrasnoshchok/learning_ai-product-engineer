@@ -1,0 +1,222 @@
+# Mutable lifecycle record of ONE lesson: programs/<id>/sessions/NNN.yaml.
+# It tracks plan, status, notes and closure data. It is NOT evidence: mastery comes only from
+# logs/assessments.jsonl. The immutable human-readable record is lessons/NNN-slug.md, written at close.
+title: Lesson session
+type: object
+required: [schema_version, id, program, lesson, status, created, updated, curriculum, selection, objectives, outcomes, materials, history]
+additionalProperties: false
+"$defs":
+  id:
+    type: string
+    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+    maxLength: 48
+  objref:
+    type: string
+    pattern: "^[a-z0-9]+(-[a-z0-9]+)*:[a-z0-9]+(-[a-z0-9]+)*$"
+  ts:
+    type: string
+    format: date-time
+  text:
+    type: string
+    minLength: 1
+    maxLength: 1000
+  texts:
+    type: array
+    uniqueItems: true
+    items:
+      "$ref": "#/$defs/text"
+  ids:
+    type: array
+    uniqueItems: true
+    items:
+      "$ref": "#/$defs/id"
+  assistance:
+    enum: [none, hint-1, hint-2, hint-3, hint-4, worked-example, explained]
+properties:
+  schema_version:
+    const: 1
+  id:
+    type: string
+    pattern: "^lesson-[0-9]{3}$"
+  program:
+    "$ref": "#/$defs/id"
+  lesson:
+    type: integer
+    minimum: 1
+  status:
+    enum: [planned, active, paused, awaiting_assessment, completed, abandoned]
+  created:
+    "$ref": "#/$defs/ts"
+  updated:
+    "$ref": "#/$defs/ts"
+  started:
+    "$ref": "#/$defs/ts"
+  finished:
+    "$ref": "#/$defs/ts"
+  curriculum:
+    type: object
+    required: [mode]
+    additionalProperties: false
+    description: "pinned = an activated, approved curriculum snapshot; legacy = program has no curriculum pipeline (competency-level objectives)."
+    properties:
+      mode:
+        enum: [pinned, legacy]
+      revision:
+        type: integer
+        minimum: 1
+      sha256:
+        type: string
+        pattern: "^[0-9a-f]{64}$"
+      snapshot:
+        type: string
+        maxLength: 200
+  selection:
+    type: object
+    required: [mode, reason]
+    additionalProperties: false
+    properties:
+      mode:
+        enum: [auto, manual, override]
+      reason:
+        "$ref": "#/$defs/text"
+      kind:
+        enum: [new, consolidate, repeat]
+      unmet_prerequisites:
+        type: array
+        items:
+          "$ref": "#/$defs/id"
+      override:
+        type: object
+        required: [rationale, statement]
+        additionalProperties: false
+        properties:
+          rationale:
+            "$ref": "#/$defs/text"
+          statement:
+            "$ref": "#/$defs/text"
+  objectives:
+    type: array
+    minItems: 1
+    maxItems: 1
+    uniqueItems: true
+    items:
+      "$ref": "#/$defs/objref"
+  competencies:
+    type: array
+    uniqueItems: true
+    items:
+      "$ref": "#/$defs/id"
+  outcomes:
+    "$ref": "#/$defs/texts"
+  materials:
+    type: array
+    items:
+      type: object
+      required: [source, use, status_at_plan]
+      additionalProperties: false
+      properties:
+        source:
+          "$ref": "#/$defs/id"
+        use:
+          enum: [primary, supplementary]
+        status_at_plan:
+          enum: [discovered, inspected, verified, unavailable, unknown]
+        note:
+          "$ref": "#/$defs/text"
+  provider:
+    type: object
+    additionalProperties: false
+    properties:
+      name:
+        enum: [claude, codex, other]
+      thread_ref:
+        type: string
+        minLength: 1
+        maxLength: 200
+  notes:
+    type: object
+    additionalProperties: false
+    description: Captured during the lesson (via `lesson note`) so a crash or pause loses nothing.
+    properties:
+      concepts_explained:
+        "$ref": "#/$defs/texts"
+      attempts:
+        type: array
+        items:
+          type: object
+          required: [objective, task, assistance, result]
+          additionalProperties: false
+          properties:
+            objective:
+              "$ref": "#/$defs/objref"
+            task:
+              "$ref": "#/$defs/text"
+            assistance:
+              "$ref": "#/$defs/assistance"
+            result:
+              enum: [correct, partial, incorrect]
+            note:
+              "$ref": "#/$defs/text"
+      misconceptions:
+        type: array
+        items:
+          type: object
+          required: [text, competency, status]
+          additionalProperties: false
+          properties:
+            text:
+              "$ref": "#/$defs/text"
+            competency:
+              "$ref": "#/$defs/id"
+            status:
+              enum: [open, resolved]
+      unresolved_questions:
+        "$ref": "#/$defs/texts"
+  closure:
+    type: object
+    required: [outcome, summary, handoff, next_action, assessment]
+    additionalProperties: false
+    properties:
+      outcome:
+        enum: [completed, partial, abandoned]
+      summary:
+        "$ref": "#/$defs/text"
+      handoff:
+        "$ref": "#/$defs/text"
+      next_action:
+        "$ref": "#/$defs/text"
+      competencies_covered:
+        "$ref": "#/$defs/ids"
+      next_focus:
+        "$ref": "#/$defs/ids"
+      assessment:
+        type: object
+        required: [status, refs]
+        additionalProperties: false
+        description: "not_assessed = no independent evidence was logged for this lesson; logged = refs point at assessments.jsonl lines."
+        properties:
+          status:
+            enum: [not_assessed, logged]
+          refs:
+            type: array
+            items:
+              type: string
+              pattern: "^logs/assessments\\.jsonl:[0-9]+$"
+      abandon_reason:
+        "$ref": "#/$defs/text"
+  history:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      required: [ts, to]
+      additionalProperties: false
+      properties:
+        ts:
+          "$ref": "#/$defs/ts"
+        from:
+          enum: [planned, active, paused, awaiting_assessment, completed, abandoned]
+        to:
+          enum: [planned, active, paused, awaiting_assessment, completed, abandoned]
+        note:
+          "$ref": "#/$defs/text"

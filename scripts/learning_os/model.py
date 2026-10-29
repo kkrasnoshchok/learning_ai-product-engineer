@@ -355,6 +355,8 @@ def validate_root(root: Path, program: str | None = None) -> Report:
         try:
             report.extend(validate_program(root, pid))
             design.validate_program(root, pid, report)
+            from . import lifecycle  # lazy: lifecycle imports model
+            lifecycle.validate_program(root, pid, report)
         except ValueError as exc:
             report.error(f"programs/{pid}", str(exc))
     if not program:
@@ -530,7 +532,10 @@ def suggest_focus(program: dict, mastery: dict, progress: dict, today: date) -> 
     return picks[:MAX_FOCUS]
 
 
-def build_context(root: Path, pid: str, today: date | None = None) -> str:
+def build_context(root: Path, pid: str, today: date | None = None, *, max_chars: int | None = None,
+                  objective: str | None = None) -> str:
+    """The lesson briefing. Built from this program's files only; sections shrink in a fixed order to fit `max_chars`."""
+    from . import lifecycle  # lazy: lifecycle imports model
     today = today or date.today()
     root = Path(root)
     report = validate_program(root, pid)
@@ -542,53 +547,69 @@ def build_context(root: Path, pid: str, today: date | None = None) -> str:
     progress = miniyaml.loads((pdir / "state" / "progress.yaml").read_text("utf-8"))
     prefs_path = root / "learner" / "preferences.yaml"
     prefs = miniyaml.loads(prefs_path.read_text("utf-8")) if prefs_path.is_file() else None
-
-    L: list[str] = []
-    L.append(f"# Lesson context pack: {program['title']} (`{pid}`)")
-    L.append("")
-    L.append(f"Generated {today.isoformat()} from program state only. It contains no earlier conversation.")
-    L.append("")
-    L.append("## Learner preferences (global)")
-    L.append("")
-    L.append("```yaml")
-    L.append(miniyaml.dumps(prefs).rstrip() if prefs else "(none set; use neutral defaults)")
-    L.append("```")
-    L.append("")
-    L.append("## Program")
-    L.append("")
-    L.append(f"- Goal: {program['goal']}")
-    L.append(f"- Status: {program['status']}; lessons completed: {progress['lessons_completed']}")
     lp = program["lesson_policy"]
-    L.append(f"- Target lesson length: {lp['target_minutes']} min; review interval: {lp['review_after_days']} days")
-    L.append("")
-    L.append("## Competency snapshot")
-    L.append("")
-    L.append("| id | title | status | score | evidence | last assessed | prerequisites |")
-    L.append("|---|---|---|---|---|---|---|")
+    limit = max_chars or lp.get("context_max_chars") or lifecycle.DEFAULT_MAX_CHARS
+    B = lifecycle.Block
+    lc = lifecycle.lesson_blocks(root, pid, program, today, objective)
+    lb = lc["blocks"]
+
+    head = [f"# Lesson context pack: {program['title']} (`program:{pid}`)", "",
+            f"Generated {today.isoformat()} from program files only. It contains no earlier conversation.", "",
+            "## Learner preferences (global)", "", "```yaml",
+            miniyaml.dumps(prefs).rstrip() if prefs else "(none set; use neutral defaults)", "```", "",
+            "## Program", "", f"- Goal: {program['goal']}",
+            f"- Status: {program['status']}; lessons completed: {progress['lessons_completed']}",
+            f"- Target lesson length: {lp['target_minutes']} min; review interval: {lp['review_after_days']} days"]
+    if program.get("curriculum"):
+        head.append(f"- Active curriculum: revision {program['curriculum']['revision']} (`{program['curriculum']['snapshot']}`)")
+    head.append("")
+
+    full = ["## Competency snapshot", "", "| id | title | status | score | evidence | last assessed | prerequisites |",
+            "|---|---|---|---|---|---|---|"]
     for c in program["competencies"]:
-        s = mastery["competencies"][c["id"]]
-        L.append(f"| {c['id']} | {c['title']} | {s['status']} | {s['score']} | {s['evidence_count']} | "
-                 f"{(s['last_assessed'] or '-')[:10]} | {', '.join(c['prerequisites']) or '-'} |")
-    L.append("")
-    L.append("## Suggested focus for this lesson")
-    L.append("")
+        st = mastery["competencies"][c["id"]]
+        full.append(f"| {c['id']} | {c['title']} | {st['status']} | {st['score']} | {st['evidence_count']} | "
+                    f"{(st['last_assessed'] or '-')[:10]} | {', '.join(c['prerequisites']) or '-'} |")
+    full.append("")
+
     picks = suggest_focus(program, mastery, progress, today)
-    L.extend([f"{i}. `{cid}`: {why}" for i, (cid, why) in enumerate(picks, 1)] or ["(nothing eligible; discuss next steps with the learner)"])
-    L.append("")
+    sug = ["## Suggested focus for this lesson", ""]
+    sug += [f"{i}. `{cid}`: {why}" for i, (cid, why) in enumerate(picks, 1)] or ["(nothing eligible; discuss next steps with the learner)"]
+    sug.append("")
+
     n = lp["history_lessons_in_context"]
     lessons, _ = read_lessons(pdir)
-    L.append(f"## Previous lesson handoff{'s' if n != 1 else ''}")
-    L.append("")
     recent = sorted(lessons, key=lambda r: r["file_number"])[-n:] if n else []
+    h_full = [f"## Previous lesson handoff{'s' if n != 1 else ''} (tutor interpretation)", ""]
+    h_small = list(h_full)
+    h_ref = h_full[:1] + ["", "(omitted for size; read the lesson record named below only if the learner asks)"]
     if not recent:
-        L.append("(none)")
+        h_full.append("(none)")
+        h_small, h_ref = h_full, h_full
     for rec in recent:
-        L.append(f"### Lesson {rec['file_number']}: {rec['meta']['title']} ({rec['meta']['date']}, {rec['meta']['outcome']})")
-        L.append(extract_sections(rec["body"], REQUIRED_HEADINGS))
-        L.append("")
-    L.append("")
-    L.append("## Rules")
-    L.append("")
-    L.append("Follow `engine/protocol/`. Do not read `archive/`, other programs, or older lesson records.")
-    L.append("")
-    return "\n".join(L)
+        t = f"### Lesson {rec['file_number']}: {rec['meta']['title']} ({rec['meta']['date']}, {rec['meta']['outcome']}) [`lesson:{rec['file_number']:03d}`]"
+        h_full += [t, extract_sections(rec["body"], REQUIRED_HEADINGS), ""]
+        if recent:
+            h_small += [t, extract_sections(rec["body"], ("## Handoff",)), ""]
+            h_ref.append(f"- lessons/{rec['file']}")
+    h_full.append("")
+
+    rules = ["## Rules", "",
+             "Follow `engine/protocol/` (08-lesson-lifecycle, 02-lesson-flow). Do not read `archive/`, other programs, or older "
+             "lesson records. Instruction is not evidence: only logged assessment events change mastery. "
+             "Lifecycle changes go through `python3 scripts/los.py lesson ...`.", ""]
+
+    blocks: list = [B("head", "\n".join(head), required=True), lb["lesson"]]
+    for k in ("objective", "progress"):
+        if k in lb:
+            blocks.append(lb[k])
+    blocks.append(lb["snapshot"] if "snapshot" in lb else B("snapshot", "\n".join(full), required=True))
+    for k in ("events", "interpretation", "resources", "misconceptions"):
+        if k in lb:
+            blocks.append(lb[k])
+    if "prev_next" in lb:
+        blocks.append(lb["prev_next"])
+    if "snapshot" not in lb:
+        blocks.append(B("suggested", "\n".join(sug), ""))
+    blocks += [B("handoff", "\n".join(h_full), "\n".join(h_small), "\n".join(h_ref)), B("rules", "\n".join(rules), required=True)]
+    return lifecycle.assemble(blocks, limit) + "\n"

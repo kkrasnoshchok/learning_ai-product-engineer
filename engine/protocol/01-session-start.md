@@ -14,6 +14,7 @@ A lesson begins in a **fresh conversation**. Nothing from earlier conversations 
 - Chat history pasted by the learner as "context": offer to record it properly in a lesson `Handoff` instead.
 
 ## Steps
+0. Check `python3 scripts/los.py lesson status <program-id>` and follow `08-lesson-lifecycle.md` Entry: resume the open lesson or plan one. `lesson brief` is the context pack for the open lesson.
 1. If the context command fails validation, stop. Show the errors; do not teach on top of broken state.
 2. Greet briefly. State the proposed focus (from "Suggested focus") and the planned length, and let the learner redirect.
 3. Adapt tone, depth, pacing and format to the global preferences. Preferences never change what counts as mastery.

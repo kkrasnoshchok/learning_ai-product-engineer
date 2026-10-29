@@ -1,5 +1,7 @@
 # 4. Session close
 
+For lessons run through the lifecycle (`08-lesson-lifecycle.md`), `lesson complete` / `lesson abandon` perform steps 2-4 for you. This file is the manual path.
+
 Perform these steps in order, even for a short or abandoned lesson.
 
 1. **Confirm assessments are logged** for everything scored this lesson.

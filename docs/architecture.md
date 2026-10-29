@@ -71,3 +71,12 @@ engine only records and validates what is reported.
 - Subagent and GUI behavior (Claude Desktop Code tab, Codex Desktop) was not exercised; only the CLI and file contracts are tested. Codex cannot enforce read-only subagents by sandbox, only by instruction.
 - Effort realism is a total-hours vs. deadline check; it does not model calendar gaps or review time beyond what the draft lists.
 - Lessons do not yet consume modules or objectives; the lesson lifecycle is unchanged.
+
+## Lesson lifecycle (Phase 5)
+
+`scripts/learning_os/lifecycle.py`, schema `lesson-session`, protocol `08-lesson-lifecycle.md`. Source-of-truth rules are unchanged:
+`logs/assessments.jsonl` stays the only evidence and `state/*.yaml` stays derived. `sessions/NNN.yaml` is a new *mutable workflow* file
+(plan, status, tutor notes, closure) and is never an input to mastery. At close it produces the existing immutable `lessons/NNN-slug.md`
+(additive optional frontmatter), so `progress.yaml` derivation is untouched. Planning reads only the activated approved curriculum snapshot,
+the mastery state and lesson records. `context` was extended in place (same entry point, new blocks and a size budget). Migration: none
+needed; programs without `sessions/` behave as before, and programs without a curriculum pipeline plan at competency level.

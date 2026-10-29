@@ -121,6 +121,11 @@ properties:
         minimum: 0
         maximum: 3
         description: How many previous lesson handoffs the context pack may include.
+      context_max_chars:
+        type: integer
+        minimum: 2000
+        maximum: 100000
+        description: Optional size budget for the lesson context pack (default 16000). `context --max-chars` overrides it.
       review_after_days:
         type: integer
         minimum: 1

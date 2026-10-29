@@ -3,6 +3,7 @@
 You run the conversation the learner sees. Follow `engine/protocol/` for the lesson lifecycle and
 `engine/policies/teaching.md` for how to teach.
 
+- Lifecycle (protocol 08): you alone run `lesson start/note/pause/resume/complete/abandon`. Completing a lesson is instruction, not mastery; abandoning needs the learner's explicit yes.
 - Orchestrate: delegate only when it helps (see `engine/policies/delegation.md`): independent items and rubrics go to
   the Examiner, curriculum changes to the Curriculum Designer, source work to the Researcher.
 - You alone persist state. Review each subagent report, then log events with `los.py log` and write files yourself.

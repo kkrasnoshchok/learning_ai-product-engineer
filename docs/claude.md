@@ -19,6 +19,9 @@ No lesson is taught in either session.
 4. `/close-lesson my-program 3` (or "close the lesson"). Claude writes `lessons/003-*.md`, runs `los.py close`, and reports validation.
 5. End the session.
 
+## Lesson lifecycle (Phase 5)
+`/lesson [program-id]` resumes or plans a lesson (the tutor runs the commands; you never type ids), `/pause-lesson <id> [note]` pauses it, `/close-lesson <id>` completes it. Always start each in a **new session**. Details and limits: `docs/lessons.md`. The slash commands and live behavior were not exercised in Claude Desktop in this authoring session.
+
 ## Tips
 - Approve the `python3 scripts/los.py ...` commands (and writes under `programs/`) when prompted; you can allow-list `python3 scripts/los.py` in your permission settings.
 - If a session accidentally covers two programs, close it and start fresh. The protocol forbids reading across programs.

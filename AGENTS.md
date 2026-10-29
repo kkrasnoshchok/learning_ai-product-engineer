@@ -7,8 +7,8 @@ desktop subscription session and plain shell commands.
 ## Hard rules
 
 1. One lesson per conversation. Never rely on, or ask the learner to paste, earlier chats.
-2. Start every lesson with `python3 scripts/los.py context <program-id>`. That output is
-   your whole briefing. Do **not** read `archive/`, other programs, or older lesson records.
+2. Start every lesson with `python3 scripts/los.py lesson status <program-id>`, then `lesson brief`
+   (the lesson-focused `context` pack). That output is your whole briefing. Do **not** read `archive/`, other programs, or older lesson records.
 3. Touch only the active program (`programs/<id>/`) or, during onboarding, `onboarding/<id>/` via the CLI and, when the learner asks,
    `learner/preferences.yaml`. Never edit `engine/`, `scripts/`, or `tests/` during a lesson.
 4. Never edit files marked `DERIVED STATE` (`state/*.yaml`). Use the commands below.
@@ -28,6 +28,7 @@ Read `engine/protocol/README.md`, then the step you are in:
 | "start a lesson on `<id>`" | `01-session-start.md`, then `02-lesson-flow.md` |
 | "assess me" / during a lesson | `03-assessment.md` |
 | "end / close the lesson" | `04-session-close.md` |
+| "start / resume / pause a lesson", "what's next" | `08-lesson-lifecycle.md` (+ `02-lesson-flow.md` for the dialogue) |
 | "plan research" / "design the curriculum" | `07-research-and-curriculum.md` (needs an approved onboarding) |
 | "new program" / "onboard me" | `06-program-onboarding.md`, then (in a new conversation, after approval) `05-program-authoring.md` |
 
@@ -40,7 +41,9 @@ Policies (teaching, assessment, delegation): `engine/policies/README.md`. Delega
 ## Commands (all offline, stdlib Python 3)
 
 ```bash
-python3 scripts/los.py context <id>                 # briefing for a fresh lesson
+python3 scripts/los.py context <id> [--max-chars N] [--objective REF]   # briefing for a fresh lesson
+python3 scripts/los.py lesson next|start|status|brief|note|pause|resume|await-assessment|complete|abandon <id>   # protocol 08
+python3 scripts/los.py programs                     # programs and any open lesson
 python3 scripts/los.py log <id> --lesson N --competency C --kind K --score S [--notes T]
 python3 scripts/los.py close <id> --lesson N        # refresh derived state + validate
 python3 scripts/los.py new-program <id> --title T   # scaffold

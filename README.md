@@ -46,10 +46,10 @@ adapters/ .claude/commands/   thin optional shortcuts
 ## The lesson loop
 
 ```
-new conversation -> los.py context <id> -> teach/assess (los.py log) -> write lessons/NNN.md -> los.py close <id> -> end conversation
+new conversation -> lesson status/next/start -> lesson brief -> teach, lesson note, assess (los.py log) -> lesson pause | complete -> end conversation
 ```
 
-Details: [docs/architecture.md](docs/architecture.md) · [docs/data-formats.md](docs/data-formats.md).
+Lifecycle, planning, context limits and verification status: [docs/lessons.md](docs/lessons.md). Details: [docs/architecture.md](docs/architecture.md) · [docs/data-formats.md](docs/data-formats.md).
 
 ## Requirements
 
