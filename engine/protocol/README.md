@@ -7,7 +7,8 @@ run lessons, never *what* to teach (that is in each program's `program.yaml`).
 2. [Lesson flow](02-lesson-flow.md): structure of one lesson
 3. [Assessment](03-assessment.md): evidence, scoring, logging
 4. [Session close](04-session-close.md): handoff, derived state, validation
-5. [Program authoring](05-program-authoring.md): creating a new program
+5. [Program authoring](05-program-authoring.md): authoring the curriculum of a program
+6. [Program onboarding](06-program-onboarding.md): learner goal to approved program spec (precedes 05)
 
 Cross-cutting: [policies](../policies/README.md) (teaching, assessment, delegation) and [roles](../roles/README.md).
 

@@ -1,0 +1,167 @@
+# Durable working state of one program onboarding (onboarding/<id>/state.yaml).
+# Subject-agnostic: holds the learner's own words, never engine defaults.
+# After approval these sections are frozen into programs/<id>/program.yaml `spec`
+# (see program.schema.yaml, which must keep the same section shapes).
+title: Program onboarding state
+type: object
+required:
+  - schema_version
+  - id
+  - title
+  - created
+  - status
+  - revision
+additionalProperties: false
+"$defs":
+  id:
+    type: string
+    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+    maxLength: 48
+  texts:
+    type: array
+    uniqueItems: true
+    items:
+      type: string
+      minLength: 1
+      maxLength: 1000
+properties:
+  schema_version:
+    const: 1
+  id:
+    "$ref": "#/$defs/id"
+  title:
+    type: string
+    minLength: 1
+    maxLength: 120
+  created:
+    type: string
+    format: date
+  status:
+    enum:
+      - draft
+      - in_review
+      - approved
+  revision:
+    type: integer
+    minimum: 1
+    description: "Increments on every content change; approval is bound to one revision."
+  goal:
+    type: object
+    additionalProperties: false
+    properties:
+      statement:
+        type: string
+        minLength: 1
+        maxLength: 1000
+      motivation:
+        type: string
+        minLength: 1
+        maxLength: 1000
+      applications:
+        "$ref": "#/$defs/texts"
+      competency_outcomes:
+        "$ref": "#/$defs/texts"
+      practical_outcomes:
+        "$ref": "#/$defs/texts"
+      success_criteria:
+        "$ref": "#/$defs/texts"
+  profile:
+    type: object
+    additionalProperties: false
+    properties:
+      prior_experience:
+        "$ref": "#/$defs/texts"
+      knowledge_gaps:
+        "$ref": "#/$defs/texts"
+      diagnostics:
+        type: array
+        items:
+          type: object
+          required:
+            - prompt
+            - outcome
+          additionalProperties: false
+          properties:
+            prompt:
+              type: string
+              minLength: 1
+              maxLength: 1000
+            outcome:
+              type: string
+              minLength: 1
+              maxLength: 1000
+            assisted:
+              type: boolean
+  constraints:
+    type: object
+    additionalProperties: false
+    properties:
+      hours_per_week:
+        type: number
+        exclusiveMinimum: 0
+        maximum: 100
+      session_minutes:
+        type: integer
+        minimum: 5
+        maximum: 240
+      depth:
+        enum:
+          - overview
+          - working
+          - deep
+          - expert
+      pace:
+        enum:
+          - relaxed
+          - steady
+          - intensive
+      deadline:
+        type: string
+        pattern: "^(none|\\d{4}-\\d{2}-\\d{2})$"
+        description: "A YYYY-MM-DD date, or the word none."
+      preferred_methods:
+        "$ref": "#/$defs/texts"
+      other:
+        "$ref": "#/$defs/texts"
+  assumptions:
+    "$ref": "#/$defs/texts"
+  open_questions:
+    type: array
+    items:
+      type: object
+      required:
+        - id
+        - text
+        - blocking
+      additionalProperties: false
+      properties:
+        id:
+          "$ref": "#/$defs/id"
+        text:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        blocking:
+          type: boolean
+        answer:
+          type: string
+          minLength: 1
+          maxLength: 1000
+  approval:
+    type: object
+    required:
+      - revision
+      - date
+      - statement
+    additionalProperties: false
+    properties:
+      revision:
+        type: integer
+        minimum: 1
+      date:
+        type: string
+        format: date
+      statement:
+        type: string
+        minLength: 1
+        maxLength: 1000

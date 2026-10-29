@@ -32,3 +32,6 @@ Block maps/lists, scalars (null, bool, int, float, plain/quoted strings), flow l
 ## Validation checks (`los.py validate`)
 
 Schema conformity; id/directory match; unique competency ids; prerequisites exist and are acyclic; threshold ordering; log lines parse, reference known competencies and existing lessons, timestamps non-decreasing; lesson files named `NNN-slug.md`, numbered 1..N, with Summary and Handoff sections; derived state equals fresh derivation. Warnings: missing preferences, `TODO` placeholders (errors under `--strict`).
+
+## Onboarding state
+`onboarding/<id>/state.yaml` (schema `engine/schemas/onboarding.schema.yaml`): status `draft | in_review | approved`, a `revision` counter, and the sections `goal`, `profile`, `constraints`, `assumptions`, `open_questions` (+ `approval` once approved). `goals.md` and `program.draft.yaml` beside it are derived previews. On approval the sections are frozen into `programs/<id>/program.yaml` under the optional `spec` key, with a placeholder curriculum.

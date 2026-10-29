@@ -8,7 +8,9 @@ Auth: your Claude subscription sign-in in the desktop app. Nothing in this repo 
 3. Edit `learner/preferences.yaml` to your taste.
 
 ## Create a program
-New session, then `/new-program my-program My Program Title` (or ask in plain words). Claude scaffolds, interviews you, authors `program.yaml`, and runs `validate --strict`. No lesson is taught in that session.
+1. **Onboarding** (new session): `/onboard my-program My Program Title`. Claude interviews you (goal, background, constraints), saves progress to `onboarding/my-program/state.yaml`, and creates the program only after you explicitly approve a summary. Interrupted? Open a new session and run `/onboard my-program` again; it resumes from the saved state.
+2. **Curriculum** (another new session): `/new-program my-program` follows the authoring protocol and starts from `onboarding brief`, which refuses until you have approved.
+No lesson is taught in either session.
 
 ## Every lesson
 1. Open a **new session** on this folder (do not continue the previous lesson's session).

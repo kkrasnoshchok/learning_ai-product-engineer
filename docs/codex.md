@@ -8,7 +8,8 @@ Auth: your ChatGPT/Codex subscription sign-in in the desktop app. Nothing in thi
 3. Edit `learner/preferences.yaml` to your taste.
 
 ## Create a program
-New thread: "Create a new learning program with id `my-program` titled `My Program Title`." Codex follows `engine/protocol/05-program-authoring.md`.
+1. New thread: "Onboard a new program with id `my-program` titled `My Program Title`." Codex follows `engine/protocol/06-program-onboarding.md`, saves progress in `onboarding/my-program/`, and creates the program only after your explicit approval. To resume, say "Resume onboarding for my-program" in a new thread.
+2. Another new thread: "Author the curriculum for my-program" (`05-program-authoring.md`, starting from `onboarding brief`).
 
 ## Every lesson
 1. Start a **new thread** (never continue an old lesson thread).

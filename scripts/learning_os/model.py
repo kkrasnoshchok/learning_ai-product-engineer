@@ -355,6 +355,9 @@ def validate_root(root: Path, program: str | None = None) -> Report:
             report.extend(validate_program(root, pid))
         except ValueError as exc:
             report.error(f"programs/{pid}", str(exc))
+    if not program:
+        from . import onboarding  # lazy: onboarding imports model
+        onboarding.validate_all(root, report)
     return report
 
 

@@ -9,7 +9,7 @@ desktop subscription session and plain shell commands.
 1. One lesson per conversation. Never rely on, or ask the learner to paste, earlier chats.
 2. Start every lesson with `python3 scripts/los.py context <program-id>`. That output is
    your whole briefing. Do **not** read `archive/`, other programs, or older lesson records.
-3. Touch only the active program (`programs/<id>/`) and, when the learner asks,
+3. Touch only the active program (`programs/<id>/`) or, during onboarding, `onboarding/<id>/` via the CLI and, when the learner asks,
    `learner/preferences.yaml`. Never edit `engine/`, `scripts/`, or `tests/` during a lesson.
 4. Never edit files marked `DERIVED STATE` (`state/*.yaml`). Use the commands below.
 5. Never edit existing lines of `logs/assessments.jsonl`. Append only via `los.py log`.
@@ -28,7 +28,7 @@ Read `engine/protocol/README.md`, then the step you are in:
 | "start a lesson on `<id>`" | `01-session-start.md`, then `02-lesson-flow.md` |
 | "assess me" / during a lesson | `03-assessment.md` |
 | "end / close the lesson" | `04-session-close.md` |
-| "new program" | `05-program-authoring.md` |
+| "new program" / "onboard me" | `06-program-onboarding.md`, then (in a new conversation, after approval) `05-program-authoring.md` |
 
 ## Roles and policies
 
@@ -44,4 +44,5 @@ python3 scripts/los.py log <id> --lesson N --competency C --kind K --score S [--
 python3 scripts/los.py close <id> --lesson N        # refresh derived state + validate
 python3 scripts/los.py new-program <id> --title T   # scaffold
 python3 scripts/los.py validate [--program <id>]
+python3 scripts/los.py onboarding status|start|update|submit|show|approve|brief <id>   # protocol 06
 ```
