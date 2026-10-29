@@ -1,0 +1,3 @@
+{"schema_version":1,"ts":"2026-01-05T10:00:00Z","program":"sample-program","lesson":1,"competency":"fixture-a","kind":"diagnostic","score":0.4}
+{"schema_version":1,"ts":"2026-01-05T10:20:00Z","program":"sample-program","lesson":1,"competency":"fixture-a","kind":"practice","score":0.8,"notes":"needed one hint"}
+{"schema_version":1,"ts":"2026-01-05T10:40:00Z","program":"sample-program","lesson":1,"competency":"fixture-a","kind":"quiz","score":1.0}

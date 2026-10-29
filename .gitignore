@@ -1,0 +1,6 @@
+# Raw conversation exports and transcripts: kept on disk, never loaded into lessons.
+archive/*
+!archive/.gitkeep
+__pycache__/
+*.pyc
+.DS_Store

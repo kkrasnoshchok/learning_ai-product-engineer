@@ -1,0 +1,32 @@
+# One line of logs/assessments.jsonl. Append-only; never edited in place.
+title: Assessment event
+type: object
+required: [schema_version, ts, program, lesson, competency, kind, score]
+additionalProperties: false
+$defs:
+  id:
+    type: string
+    pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'
+    maxLength: 48
+properties:
+  schema_version:
+    const: 1
+  ts:
+    type: string
+    format: date-time
+  program:
+    $ref: '#/$defs/id'
+  lesson:
+    type: integer
+    minimum: 1
+  competency:
+    $ref: '#/$defs/id'
+  kind:
+    enum: [diagnostic, practice, quiz, explain-back, project, review]
+  score:
+    type: number
+    minimum: 0
+    maximum: 1
+  notes:
+    type: string
+    maxLength: 500

@@ -1,0 +1,9 @@
+schema_version: 1
+language: en
+communication:
+  tone: concise
+  feedback_style: socratic
+pacing:
+  lesson_minutes: 30
+learning_style:
+  prefers: [worked-examples, diagrams]

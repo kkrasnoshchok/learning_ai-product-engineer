@@ -1,0 +1,39 @@
+# DERIVED state: rebuilt from logs/assessments.jsonl by `scripts/los.py rebuild`.
+title: Program mastery state
+type: object
+required: [schema_version, program, as_of, competencies]
+additionalProperties: false
+$defs:
+  id:
+    type: string
+    pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'
+    maxLength: 48
+properties:
+  schema_version:
+    const: 1
+  program:
+    $ref: '#/$defs/id'
+  as_of:
+    type: [string, "null"]
+    format: date-time
+  competencies:
+    type: object
+    propertyNames:
+      $ref: '#/$defs/id'
+    additionalProperties:
+      type: object
+      required: [score, evidence_count, status, last_assessed]
+      additionalProperties: false
+      properties:
+        score:
+          type: number
+          minimum: 0
+          maximum: 1
+        evidence_count:
+          type: integer
+          minimum: 0
+        status:
+          enum: [unseen, learning, proficient, mastered]
+        last_assessed:
+          type: [string, "null"]
+          format: date-time

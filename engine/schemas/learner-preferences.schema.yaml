@@ -1,0 +1,63 @@
+# Global learner preferences. Applies to every program; never contains
+# subject matter, mastery, or progress (those live in programs/<id>/).
+title: Learner preferences
+type: object
+required:
+  - schema_version
+additionalProperties: false
+properties:
+  schema_version:
+    const: 1
+  language:
+    type: string
+    minLength: 2
+    maxLength: 35
+    description: BCP-47-style tag for the language lessons are taught in.
+  communication:
+    type: object
+    additionalProperties: false
+    properties:
+      tone:
+        enum: [concise, balanced, detailed]
+      explanation_depth:
+        enum: [intuition-first, formal-first, balanced]
+      feedback_style:
+        enum: [direct, encouraging, socratic]
+  pacing:
+    type: object
+    additionalProperties: false
+    properties:
+      lesson_minutes:
+        type: integer
+        minimum: 5
+        maximum: 240
+      sessions_per_week:
+        type: integer
+        minimum: 1
+        maximum: 21
+  learning_style:
+    type: object
+    additionalProperties: false
+    properties:
+      prefers:
+        type: array
+        uniqueItems: true
+        items:
+          enum: [worked-examples, retrieval-practice, projects, diagrams, analogies, socratic-dialogue, reading]
+  assessment:
+    type: object
+    additionalProperties: false
+    properties:
+      feedback_timing:
+        enum: [immediate, end-of-lesson]
+      preferred_kinds:
+        type: array
+        uniqueItems: true
+        items:
+          enum: [diagnostic, practice, quiz, explain-back, project, review]
+  accessibility_notes:
+    type: string
+    maxLength: 1000
+  notes:
+    type: string
+    maxLength: 2000

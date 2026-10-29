@@ -1,0 +1,32 @@
+# TEST FIXTURE ONLY. Abstract placeholders; not a real curriculum.
+schema_version: 1
+id: sample-program
+title: Sample Program (fixture)
+goal: Exercise the engine with abstract competencies.
+created: 2026-01-01
+status: active
+competencies:
+  - id: fixture-a
+    title: Fixture competency A
+    description: A root competency with no prerequisites.
+    prerequisites: []
+  - id: fixture-b
+    title: Fixture competency B
+    description: Requires A.
+    prerequisites: [fixture-a]
+    tags: [fixture]
+  - id: fixture-c
+    title: Fixture competency C
+    description: Requires A and B.
+    prerequisites:
+      - fixture-a
+      - fixture-b
+mastery_policy:
+  ewma_alpha: 0.5
+  proficient_threshold: 0.7
+  mastered_threshold: 0.9
+  min_evidence: 2
+lesson_policy:
+  target_minutes: 30
+  history_lessons_in_context: 1
+  review_after_days: 14

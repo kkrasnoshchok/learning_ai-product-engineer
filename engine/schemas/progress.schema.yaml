@@ -1,0 +1,29 @@
+# DERIVED state: rebuilt from lessons/*.md by `scripts/los.py rebuild` / `close`.
+title: Program progress state
+type: object
+required: [schema_version, program, as_of, lessons_completed, last_lesson_file, next_focus]
+additionalProperties: false
+$defs:
+  id:
+    type: string
+    pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'
+    maxLength: 48
+properties:
+  schema_version:
+    const: 1
+  program:
+    $ref: '#/$defs/id'
+  as_of:
+    type: [string, "null"]
+    format: date
+  lessons_completed:
+    type: integer
+    minimum: 0
+  last_lesson_file:
+    type: [string, "null"]
+    pattern: '^[0-9]{3}-[a-z0-9-]+\.md$'
+  next_focus:
+    type: array
+    uniqueItems: true
+    items:
+      $ref: '#/$defs/id'

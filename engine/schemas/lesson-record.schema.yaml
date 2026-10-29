@@ -1,0 +1,38 @@
+# YAML frontmatter of programs/<id>/lessons/NNN-slug.md. The Markdown body
+# must contain "## Summary" and "## Handoff" sections.
+title: Lesson record frontmatter
+type: object
+required: [schema_version, program, lesson, date, title, outcome, competencies_covered, next_focus]
+additionalProperties: false
+$defs:
+  id:
+    type: string
+    pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'
+    maxLength: 48
+properties:
+  schema_version:
+    const: 1
+  program:
+    $ref: '#/$defs/id'
+  lesson:
+    type: integer
+    minimum: 1
+  date:
+    type: string
+    format: date
+  title:
+    type: string
+    minLength: 1
+    maxLength: 120
+  outcome:
+    enum: [completed, partial, abandoned]
+  competencies_covered:
+    type: array
+    uniqueItems: true
+    items:
+      $ref: '#/$defs/id'
+  next_focus:
+    type: array
+    uniqueItems: true
+    items:
+      $ref: '#/$defs/id'

@@ -1,0 +1,21 @@
+# DERIVED STATE - rebuilt from logs/lessons by `python3 scripts/los.py rebuild`.
+# Do not edit by hand; `validate` fails if it drifts from its sources.
+schema_version: 1
+program: sample-program
+as_of: "2026-01-05T10:40:00Z"
+competencies:
+  fixture-a:
+    score: 0.8
+    evidence_count: 3
+    status: proficient
+    last_assessed: "2026-01-05T10:40:00Z"
+  fixture-b:
+    score: 0.0
+    evidence_count: 0
+    status: unseen
+    last_assessed: null
+  fixture-c:
+    score: 0.0
+    evidence_count: 0
+    status: unseen
+    last_assessed: null

@@ -1,0 +1,9 @@
+# DERIVED STATE - rebuilt from logs/lessons by `python3 scripts/los.py rebuild`.
+# Do not edit by hand; `validate` fails if it drifts from its sources.
+schema_version: 1
+program: sample-program
+as_of: 2026-01-05
+lessons_completed: 1
+last_lesson_file: 001-fixture-intro.md
+next_focus:
+  - fixture-b

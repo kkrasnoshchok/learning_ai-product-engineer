@@ -1,0 +1,18 @@
+# Global learner preferences: how you like to be taught, across ALL programs.
+# Subject matter, mastery and progress never go here (see programs/<id>/).
+# Edit freely; changes apply from the next lesson's context pack.
+schema_version: 1
+language: en
+communication:
+  tone: balanced
+  explanation_depth: balanced
+  feedback_style: direct
+pacing:
+  lesson_minutes: 45
+  sessions_per_week: 3
+learning_style:
+  prefers:
+    - worked-examples
+    - retrieval-practice
+assessment:
+  feedback_timing: end-of-lesson

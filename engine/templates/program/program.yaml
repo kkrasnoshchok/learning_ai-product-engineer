@@ -1,0 +1,28 @@
+# Program definition scaffold. Replace every TODO. `validate` warns while
+# TODO markers remain; `validate --strict` fails.
+# Subject matter lives ONLY in this file and in materials/.
+schema_version: 1
+id: __PROGRAM_ID__
+title: __PROGRAM_TITLE__
+goal: "TODO: one or two sentences describing what the learner will be able to do."
+created: __CREATED__
+status: active
+
+# Competency graph. `prerequisites` must reference ids in this list (no cycles).
+competencies:
+  - id: todo-first-competency
+    title: "TODO: name the first competency"
+    description: "TODO: observable description of what mastery looks like."
+    prerequisites: []
+
+# Rules that turn assessment scores into a status. Tune per program.
+mastery_policy:
+  ewma_alpha: 0.5            # weight of the newest score
+  proficient_threshold: 0.7
+  mastered_threshold: 0.9
+  min_evidence: 2            # events needed before proficient/mastered
+
+lesson_policy:
+  target_minutes: 45
+  history_lessons_in_context: 1   # previous handoffs given to a new lesson (0-3)
+  review_after_days: 14
