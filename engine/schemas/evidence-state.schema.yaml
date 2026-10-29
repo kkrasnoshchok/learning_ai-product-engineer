@@ -1,0 +1,135 @@
+# DERIVED state: rebuilt from logs/assessments.jsonl (+ completed lesson records) by `scripts/los.py rebuild`.
+# Holds the evidence level per competency, the spaced-repetition schedule and evidence-backed misconceptions.
+# Contains no wall-clock "today": overdue-ness is computed when asked (`review due`, `progress`).
+title: Program evidence state
+type: object
+required: [schema_version, program, as_of, competencies, reviews, misconceptions]
+additionalProperties: false
+"$defs":
+  id:
+    type: string
+    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+    maxLength: 48
+  ts:
+    type: [string, "null"]
+    format: date-time
+properties:
+  schema_version:
+    const: 1
+  program:
+    "$ref": "#/$defs/id"
+  as_of:
+    "$ref": "#/$defs/ts"
+  competencies:
+    type: object
+    propertyNames:
+      "$ref": "#/$defs/id"
+    additionalProperties:
+      type: object
+      required: [level, exposure, valid, unverified, assisted, task_types, retained, transfer, last_independent, mastered_blockers]
+      additionalProperties: false
+      properties:
+        level:
+          enum: [unseen, exposure, assisted, independent, retained]
+        exposure:
+          type: boolean
+          description: Covered by a completed lesson (instruction, not evidence).
+        valid:
+          type: integer
+          minimum: 0
+          description: Independent, rubric-backed events with confidence above low (can support `mastered`).
+        unverified:
+          type: integer
+          minimum: 0
+          description: Legacy or unrubric'd independent events (count toward score, never toward strict `mastered`).
+        assisted:
+          type: integer
+          minimum: 0
+        task_types:
+          type: array
+          items:
+            enum: [recall, application, transfer, delayed_review]
+        retained:
+          type: boolean
+        transfer:
+          type: boolean
+        last_independent:
+          "$ref": "#/$defs/ts"
+        mastered_blockers:
+          type: array
+          items:
+            type: string
+            maxLength: 200
+  reviews:
+    type: object
+    propertyNames:
+      "$ref": "#/$defs/id"
+    additionalProperties:
+      type: object
+      required: [stage, interval_days, due, last_event, last_result, lapses, holds, reason]
+      additionalProperties: false
+      properties:
+        stage:
+          type: integer
+          minimum: 0
+        interval_days:
+          type: integer
+          minimum: 1
+        due:
+          type: string
+          format: date
+        last_event:
+          type: string
+          format: date-time
+        last_result:
+          enum: [entered, advanced, held, failed]
+        lapses:
+          type: integer
+          minimum: 0
+        holds:
+          type: integer
+          minimum: 0
+        reason:
+          type: string
+          maxLength: 300
+  misconceptions:
+    type: object
+    propertyNames:
+      type: string
+      pattern: "^mc-[0-9a-f]{8}$"
+    additionalProperties:
+      type: object
+      required: [competency, text, status, demonstrated, recurrences, first_seen, last_seen, evidence, unsupported_resolutions]
+      additionalProperties: false
+      properties:
+        competency:
+          "$ref": "#/$defs/id"
+        text:
+          type: string
+          maxLength: 200
+        status:
+          enum: [suspected, demonstrated, resolved]
+        demonstrated:
+          type: integer
+          minimum: 0
+          description: Number of events that demonstrated it.
+        recurrences:
+          type: integer
+          minimum: 0
+          description: Times it reappeared after being resolved.
+        first_seen:
+          type: string
+          format: date-time
+        last_seen:
+          type: string
+          format: date-time
+        evidence:
+          type: array
+          maxItems: 5
+          items:
+            type: string
+        resolved_by:
+          type: string
+        unsupported_resolutions:
+          type: integer
+          minimum: 0

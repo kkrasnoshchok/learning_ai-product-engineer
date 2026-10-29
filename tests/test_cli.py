@@ -57,7 +57,10 @@ class WorkflowTests(unittest.TestCase):
                                "--score", score, "--ts", f"2026-03-02T09:0{i}:00Z")
             self.assertEqual(code, 0, out)
         mastery = (self.root / "programs/demo/state/mastery.yaml").read_text("utf-8")
-        self.assertIn("status: mastered", mastery)  # EWMA 0.925 >= 0.9 with 2 events
+        # Phase 6 migration: a scaffolded program is `strict`, so two free-form (unverified) events reach
+        # proficient but cannot earn `mastered`; that needs rubric-backed, varied, delayed evidence.
+        self.assertIn("status: proficient", mastery)  # EWMA 0.925 >= 0.9 with 2 events, but unverified
+        self.assertNotIn("status: mastered", mastery)
 
         # write the lesson record from the template and close
         rec = (REPO / "engine/templates/lesson-record.md").read_text("utf-8")

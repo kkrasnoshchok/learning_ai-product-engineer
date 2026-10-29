@@ -7,14 +7,23 @@ program's own program.yaml.
 from __future__ import annotations
 
 import json
+import os
 import re
+import tempfile
+import time
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from . import miniyaml, schema as jschema
+from . import evidence, miniyaml, schema as jschema
+
+try:
+    import fcntl
+except ImportError:  # non-POSIX: no advisory lock; single-writer discipline is then manual
+    fcntl = None
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ENGINE_DIR = REPO_ROOT / "engine"
@@ -141,32 +150,8 @@ def read_lessons(pdir: Path) -> tuple[list[dict], list[str]]:
 # --------------------------------------------------------------------------
 
 def derive_mastery(program: dict, events: list[dict]) -> dict:
-    pol = program["mastery_policy"]
-    alpha = pol["ewma_alpha"]
-    acc = {c["id"]: {"score": None, "n": 0, "last": None} for c in program["competencies"]}
-    as_of = None
-    for ev in events:
-        s = acc.get(ev["competency"])
-        if s is None:
-            continue
-        s["score"] = ev["score"] if s["score"] is None else alpha * ev["score"] + (1 - alpha) * s["score"]
-        s["n"] += 1
-        s["last"] = ev["ts"]
-        as_of = ev["ts"]
-    comps = {}
-    for cid, s in acc.items():
-        n = s["n"]
-        score = round(s["score"], 4) if n else 0.0
-        if n == 0:
-            status = "unseen"
-        elif n >= pol["min_evidence"] and score >= pol["mastered_threshold"]:
-            status = "mastered"
-        elif n >= pol["min_evidence"] and score >= pol["proficient_threshold"]:
-            status = "proficient"
-        else:
-            status = "learning"
-        comps[cid] = {"score": score, "evidence_count": n, "status": status, "last_assessed": s["last"]}
-    return {"schema_version": SCHEMA_VERSION, "program": program["id"], "as_of": as_of, "competencies": comps}
+    """Mastery status per competency. See evidence.derive_mastery for the evidence-class rules."""
+    return evidence.derive_mastery(program, events)
 
 
 def derive_progress(program: dict, lessons: list[dict]) -> dict:
@@ -297,6 +282,7 @@ def validate_program(root: Path, pid: str) -> Report:
         report.error(f"{base}/logs/assessments.jsonl", e)
     good_events: list[dict] = []
     prev_ts = ""
+    seen_assessments: set[str] = set()
     for ev in events:
         where = f"{base}/logs/assessments.jsonl:{ev['_line']}"
         clean = {k: v for k, v in ev.items() if k != "_line"}
@@ -306,19 +292,35 @@ def validate_program(root: Path, pid: str) -> Report:
             report.error(where, f"program {clean['program']!r} does not match {pid!r}")
         if clean["competency"] not in known:
             report.error(where, f"unknown competency {clean['competency']!r}")
-        if clean["lesson"] > max_lesson + 1:
+        if "lesson" in clean and clean["lesson"] > max_lesson + 1:
             report.error(where, f"references lesson {clean['lesson']} but only {max_lesson} lesson record(s) exist")
+        for problem in evidence.check_event(clean, program):
+            report.error(where, problem)
+        aid = clean.get("assessment_id")
+        if aid:
+            if aid in seen_assessments:
+                report.error(where, f"assessment {aid} was logged more than once (duplicate submission)")
+            seen_assessments.add(aid)
         if _norm_ts(clean["ts"]) < prev_ts:
             report.error(where, "timestamp is earlier than the previous event (log must be append-only)")
         prev_ts = max(prev_ts, _norm_ts(clean["ts"]))
-        good_events.append(clean)
+        good_events.append(ev)  # keeps `_line` so derived evidence can cite log lines
 
     # derived state
     expected_mastery = derive_mastery(program, good_events)
+    expected_ev = evidence.derive_evidence(program, good_events, _lesson_records(pdir))
     mastery = load_yaml(report, pdir / "state" / "mastery.yaml", f"{base}/state/mastery.yaml")
     if mastery is not None and check_schema(report, f"{base}/state/mastery.yaml", mastery, "mastery"):
         if mastery != expected_mastery and report.ok:
             report.error(f"{base}/state/mastery.yaml", "drifted from logs/assessments.jsonl; run `python3 scripts/los.py rebuild " + pid + "`")
+    ev_path = pdir / "state" / "evidence.yaml"
+    if not ev_path.is_file():
+        report.warn(f"{base}/state/evidence.yaml", "missing (created before Phase 6); run `python3 scripts/los.py rebuild " + pid + "`")
+    else:
+        stored = load_yaml(report, ev_path, f"{base}/state/evidence.yaml")
+        if stored is not None and check_schema(report, f"{base}/state/evidence.yaml", stored, "evidence-state"):
+            if stored != expected_ev and report.ok:
+                report.error(f"{base}/state/evidence.yaml", "drifted from logs/assessments.jsonl; run `python3 scripts/los.py rebuild " + pid + "`")
     if not report.errors:
         expected_progress = derive_progress(program, valid_lessons)
         progress = load_yaml(report, pdir / "state" / "progress.yaml", f"{base}/state/progress.yaml")
@@ -357,6 +359,9 @@ def validate_root(root: Path, program: str | None = None) -> Report:
             design.validate_program(root, pid, report)
             from . import lifecycle  # lazy: lifecycle imports model
             lifecycle.validate_program(root, pid, report)
+            from . import assessment, review  # lazy: both import model
+            assessment.validate_program(root, pid, report)
+            review.validate_program(root, pid, report)
         except ValueError as exc:
             report.error(f"programs/{pid}", str(exc))
     if not program:
@@ -378,14 +383,77 @@ def _load_valid_program(root: Path, pid: str) -> dict:
     return program
 
 
+def atomic_write(path: Path, text: str) -> None:
+    """Write via temp file + rename so readers never see a partial file."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".tmp-")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(text)
+        os.replace(tmp, path)
+    except BaseException:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+        raise
+
+
+_HELD: dict[str, tuple[int, int]] = {}
+
+
+@contextmanager
+def program_lock(root: Path, pid: str, timeout: float = 10.0):
+    """Exclusive, re-entrant, advisory per-program lock for every multi-file write (log append + derived state)."""
+    pdir = program_dir(root, pid)
+    key = str(pdir)
+    if key in _HELD:
+        fd, depth = _HELD[key]
+        _HELD[key] = (fd, depth + 1)
+        try:
+            yield
+        finally:
+            _HELD[key] = (fd, _HELD[key][1] - 1)
+        return
+    if not pdir.is_dir():
+        raise ValueError(f"programs/{pid} does not exist")
+    fd = os.open(pdir / ".los.lock", os.O_CREAT | os.O_RDWR, 0o644)
+    try:
+        if fcntl is not None:
+            deadline = time.monotonic() + timeout
+            while True:
+                try:
+                    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    break
+                except OSError:
+                    if time.monotonic() > deadline:
+                        raise ValueError(f"programs/{pid} is locked by another conversation; retry in a moment")
+                    time.sleep(0.05)
+        _HELD[key] = (fd, 1)
+        try:
+            yield
+        finally:
+            _HELD.pop(key, None)
+    finally:
+        os.close(fd)  # closing releases the flock
+
+
+def _lesson_records(pdir: Path) -> list[dict]:
+    """Schema-valid lesson records only (derived exposure must not depend on a broken file)."""
+    recs, _ = read_lessons(pdir)
+    return [r for r in recs if not jschema.validate(r["meta"], load_schema("lesson-record"))]
+
+
 def write_mastery(root: Path, pid: str) -> dict:
+    """Refresh state/mastery.yaml and state/evidence.yaml from the log (and completed lessons), atomically."""
     program = _load_valid_program(root, pid)
     pdir = program_dir(root, pid)
-    events, errs = read_events(pdir / "logs" / "assessments.jsonl")
-    if errs:
-        raise ValueError("assessment log is invalid: " + "; ".join(errs))
-    mastery = derive_mastery(program, [{k: v for k, v in e.items() if k != "_line"} for e in events])
-    (pdir / "state" / "mastery.yaml").write_text(STATE_HEADER + miniyaml.dumps(mastery), "utf-8")
+    with program_lock(root, pid):
+        events, errs = read_events(pdir / "logs" / "assessments.jsonl")
+        if errs:
+            raise ValueError("assessment log is invalid: " + "; ".join(errs))
+        mastery = derive_mastery(program, events)
+        atomic_write(pdir / "state" / "mastery.yaml", STATE_HEADER + miniyaml.dumps(mastery))
+        ev_state = evidence.derive_evidence(program, events, _lesson_records(pdir))
+        atomic_write(pdir / "state" / "evidence.yaml", STATE_HEADER + miniyaml.dumps(ev_state))
     return mastery
 
 
@@ -400,7 +468,7 @@ def write_progress(root: Path, pid: str) -> dict:
         if not check_schema(r, rec["file"], rec["meta"], "lesson-record"):
             raise ValueError("; ".join(r.errors))
     progress = derive_progress(program, lessons)
-    (pdir / "state" / "progress.yaml").write_text(STATE_HEADER + miniyaml.dumps(progress), "utf-8")
+    atomic_write(pdir / "state" / "progress.yaml", STATE_HEADER + miniyaml.dumps(progress))
     return progress
 
 
@@ -414,35 +482,56 @@ def now_ts() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def append_event(root: Path, pid: str, *, lesson: int, competency: str, kind: str,
-                 score: float, notes: str | None = None, ts: str | None = None) -> dict:
+def find_event(events: list[dict], assessment_id: str) -> dict | None:
+    return next((e for e in events if e.get("assessment_id") == assessment_id), None)
+
+
+def append_event(root: Path, pid: str, *, lesson: int | None = None, competency: str, kind: str,
+                 score: float, notes: str | None = None, ts: str | None = None,
+                 extra: dict | None = None) -> dict:
+    """Append one event (locked, validated, idempotent on `assessment_id`) and refresh derived state.
+
+    `extra` carries the optional Phase 6 fields (independence, type, assessment_id, ...). Re-appending an
+    assessment_id that is already logged returns the existing event unchanged and writes nothing.
+    """
     program = _load_valid_program(root, pid)
     pdir = program_dir(root, pid)
     log = pdir / "logs" / "assessments.jsonl"
-    events, errs = read_events(log)
-    if errs:
-        raise ValueError("assessment log is invalid, fix before appending: " + "; ".join(errs))
-    ev: dict[str, Any] = {
-        "schema_version": SCHEMA_VERSION, "ts": ts or now_ts(), "program": pid,
-        "lesson": lesson, "competency": competency, "kind": kind, "score": score,
-    }
-    if notes:
-        ev["notes"] = notes
-    problems = jschema.validate(ev, load_schema("assessment-event"))
-    if competency not in {c["id"] for c in program["competencies"]}:
-        problems.append(f"unknown competency {competency!r}")
-    if events and not problems and _norm_ts(ev["ts"]) < max(_norm_ts(e["ts"]) for e in events):
-        problems.append("timestamp is earlier than the last logged event")
-    lessons, _ = read_lessons(pdir)
-    if lesson > max((r["file_number"] for r in lessons), default=0) + 1:
-        problems.append(f"lesson {lesson} is ahead of the next lesson number")
-    if problems:
-        raise ValueError("; ".join(problems))
-    line = json.dumps(ev, ensure_ascii=False, separators=(",", ":"))
-    needs_nl = log.stat().st_size > 0 and not log.read_text("utf-8").endswith("\n")
-    with log.open("a", encoding="utf-8") as fh:  # append-only, never rewrite
-        fh.write(("\n" if needs_nl else "") + line + "\n")
-    write_mastery(root, pid)
+    with program_lock(root, pid):
+        events, errs = read_events(log)
+        if errs:
+            raise ValueError("assessment log is invalid, fix before appending: " + "; ".join(errs))
+        extra = dict(extra or {})
+        aid = extra.get("assessment_id")
+        if aid and (prior := find_event(events, aid)):
+            write_mastery(root, pid)  # finish an interrupted refresh
+            return {k: v for k, v in prior.items() if k != "_line"}
+        ev: dict[str, Any] = {
+            "schema_version": SCHEMA_VERSION, "ts": ts or now_ts(), "program": pid,
+            "competency": competency, "kind": kind, "score": score,
+        }
+        if lesson is not None:
+            ev["lesson"] = lesson
+        if notes:
+            ev["notes"] = notes
+        ev.update(extra)
+        problems = jschema.validate(ev, load_schema("assessment-event"))
+        if not problems:
+            problems += evidence.check_event(ev, program)
+        if competency not in {c["id"] for c in program["competencies"]}:
+            problems.append(f"unknown competency {competency!r}")
+        if events and not problems and _norm_ts(ev["ts"]) < max(_norm_ts(e["ts"]) for e in events):
+            problems.append("timestamp is earlier than the last logged event")
+        lessons, _ = read_lessons(pdir)
+        if lesson is not None and lesson > max((r["file_number"] for r in lessons), default=0) + 1:
+            problems.append(f"lesson {lesson} is ahead of the next lesson number")
+        if problems:
+            raise ValueError("; ".join(problems))
+        line = json.dumps(ev, ensure_ascii=False, separators=(",", ":"))
+        needs_nl = log.stat().st_size > 0 and not log.read_text("utf-8").endswith("\n")
+        with log.open("a", encoding="utf-8") as fh:  # append-only, never rewrite
+            fh.write(("\n" if needs_nl else "") + line + "\n")
+        write_mastery(root, pid)
     return ev
 
 
@@ -611,5 +700,11 @@ def build_context(root: Path, pid: str, today: date | None = None, *, max_chars:
         blocks.append(lb["prev_next"])
     if "snapshot" not in lb:
         blocks.append(B("suggested", "\n".join(sug), ""))
+    focus_ids: list[str] = []
+    if lc.get("focus") and lc.get("view"):
+        fc = lc["focus"]["competency"]
+        focus_ids = [fc, *lc["view"]["comps"][fc]["prerequisites"]]
+    from . import review  # lazy: review imports model
+    blocks += review.context_blocks(root, pid, program, today, focus_ids)
     blocks += [B("handoff", "\n".join(h_full), "\n".join(h_small), "\n".join(h_ref)), B("rules", "\n".join(rules), required=True)]
     return lifecycle.assemble(blocks, limit) + "\n"

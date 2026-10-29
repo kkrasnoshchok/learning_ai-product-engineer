@@ -11,7 +11,7 @@ desktop subscription session and plain shell commands.
    (the lesson-focused `context` pack). That output is your whole briefing. Do **not** read `archive/`, other programs, or older lesson records.
 3. Touch only the active program (`programs/<id>/`) or, during onboarding, `onboarding/<id>/` via the CLI and, when the learner asks,
    `learner/preferences.yaml`. Never edit `engine/`, `scripts/`, or `tests/` during a lesson.
-4. Never edit files marked `DERIVED STATE` (`state/*.yaml`). Use the commands below.
+4. Never edit files marked `DERIVED STATE` (`state/*.yaml`). Use the commands below. Never show the learner `assessments/*/private.yaml` or read it out before they submit.
 5. Never edit existing lines of `logs/assessments.jsonl`. Append only via `los.py log`.
 6. Do not invent curriculum from this repo's defaults: competencies come from the
    program's `program.yaml`. To create a program, follow `engine/protocol/05-program-authoring.md`.
@@ -30,6 +30,9 @@ Read `engine/protocol/README.md`, then the step you are in:
 | "end / close the lesson" | `04-session-close.md` |
 | "start / resume / pause a lesson", "what's next" | `08-lesson-lifecycle.md` (+ `02-lesson-flow.md` for the dialogue) |
 | "plan research" / "design the curriculum" | `07-research-and-curriculum.md` (needs an approved onboarding) |
+| "Test my understanding", "start an independent assessment" | `09-assessment-and-review.md` (assessment workflow; needs an open lesson or review) |
+| "What should I review today?", "start my review session", "review what I'm about to forget" | `09-assessment-and-review.md` (`review due` / `review start`; fresh conversation, not a lesson) |
+| "Show my learning progress" | run `python3 scripts/los.py progress <id>` and relay it (facts vs interpretation) |
 | "new program" / "onboard me" | `06-program-onboarding.md`, then (in a new conversation, after approval) `05-program-authoring.md` |
 
 ## Roles and policies
@@ -44,10 +47,13 @@ Policies (teaching, assessment, delegation): `engine/policies/README.md`. Delega
 python3 scripts/los.py context <id> [--max-chars N] [--objective REF]   # briefing for a fresh lesson
 python3 scripts/los.py lesson next|start|status|brief|note|pause|resume|await-assessment|complete|abandon <id>   # protocol 08
 python3 scripts/los.py programs                     # programs and any open lesson
-python3 scripts/los.py log <id> --lesson N --competency C --kind K --score S [--notes T]
+python3 scripts/los.py log <id> --lesson N --competency C --kind K --score S [--notes T] [--independence independent|assisted --assistance L]   # free-form = unverified evidence
 python3 scripts/los.py close <id> --lesson N        # refresh derived state + validate
 python3 scripts/los.py new-program <id> --title T   # scaffold
 python3 scripts/los.py validate [--program <id>]
+python3 scripts/los.py assess create|show|hint|submit|brief|grade|review|commit|void|status <id> ...   # protocol 09
+python3 scripts/los.py review due|start|brief|status|skip|complete|abandon <id>                      # protocol 09
+python3 scripts/los.py progress <id>                                                                  # evidence-based report
 python3 scripts/los.py onboarding status|start|update|submit|show|approve|brief <id>   # protocol 06
 python3 scripts/los.py research init|plan-update|plan-submit|plan-approve|add|brief|status <id>   # protocol 07
 python3 scripts/los.py curriculum competencies-set|update|check|submit|approve|activate|brief|status <id>

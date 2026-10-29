@@ -4,3 +4,7 @@ archive/*
 __pycache__/
 *.pyc
 .DS_Store
+
+# per-program advisory write lock (Phase 6)
+programs/*/.los.lock
+tests/fixtures/root/programs/*/.los.lock

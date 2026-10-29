@@ -1,0 +1,90 @@
+# PRIVATE rubric and answer key: programs/<id>/assessments/asm-NNN/private.yaml.
+# Never shown to the learner and never included in any context pack or learner-facing command. This is a
+# procedural boundary, NOT a security boundary: any agent with file access to the repo can read it.
+# Prefer objective `check`s (graded by the engine) over judged criteria (graded by the Examiner).
+title: Assessment rubric and key
+type: object
+required: [schema_version, id, criteria]
+additionalProperties: false
+"$defs":
+  id:
+    type: string
+    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+    maxLength: 48
+properties:
+  schema_version:
+    const: 1
+  id:
+    type: string
+    pattern: "^asm-[0-9]{3,}$"
+  answer_key:
+    type: string
+    maxLength: 4000
+  criteria:
+    type: array
+    minItems: 1
+    maxItems: 12
+    items:
+      type: object
+      required: [id, kind, weight, description]
+      additionalProperties: false
+      properties:
+        id:
+          "$ref": "#/$defs/id"
+        kind:
+          enum: [objective, judged]
+        weight:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 100
+        description:
+          type: string
+          minLength: 1
+          maxLength: 500
+        item:
+          "$ref": "#/$defs/id"
+        check:
+          type: object
+          required: [type]
+          additionalProperties: false
+          properties:
+            type:
+              enum: [exact, regex, number]
+            accept:
+              type: array
+              minItems: 1
+              items:
+                type: string
+                maxLength: 200
+            pattern:
+              type: string
+              maxLength: 200
+            value:
+              type: number
+            tolerance:
+              type: number
+              minimum: 0
+        full:
+          type: string
+          maxLength: 500
+        partial:
+          type: string
+          maxLength: 500
+        zero:
+          type: string
+          maxLength: 500
+  misconception_signals:
+    type: array
+    maxItems: 8
+    items:
+      type: object
+      required: [text, signal]
+      additionalProperties: false
+      properties:
+        text:
+          type: string
+          minLength: 3
+          maxLength: 200
+        signal:
+          type: string
+          maxLength: 300

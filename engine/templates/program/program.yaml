@@ -26,3 +26,17 @@ lesson_policy:
   target_minutes: 45
   history_lessons_in_context: 1   # previous handoffs given to a new lesson (0-3)
   review_after_days: 14
+
+# Phase 6. strict = `mastered` needs structured, independent, rubric-backed evidence of several task types plus a
+# delayed review (see engine/protocol/09-assessment-and-review.md). Remove this block to get the legacy rule.
+evidence_policy:
+  mode: strict
+  min_task_types: 2
+  min_retention_days: 3
+  require_transfer: false
+
+# Spaced repetition. Reviews are derived from the assessment log; this only sets the pacing.
+review_policy:
+  intervals: [1, 3, 7, 14, 30]   # days; adapts per competency from independent review results
+  max_per_day: 5
+  minutes_per_item: 5

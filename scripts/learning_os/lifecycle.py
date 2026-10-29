@@ -604,6 +604,13 @@ def finish_lesson(root: Path, pid: str, patch: Any = None, *, outcome: str = "co
     if "closure" in doc and (doc["closure"]["outcome"] == "abandoned") != (outcome == "abandoned"):
         raise ValueError(f"{doc['id']} is already closing as {doc['closure']['outcome']}; finish that first")
     program = _program(root, pid)
+    if outcome != "abandoned" and "closure" not in doc:
+        from . import assessment  # lazy
+        half = assessment.unfinished_for_lesson(root, pid, doc["lesson"])
+        if half:
+            raise ValueError("assessments of this lesson are submitted but not committed: "
+                             + ", ".join(f"{t['id']} ({t['status']})" for t in half)
+                             + "; grade/commit them (or `assess void`) before completing, so no evidence is left half-recorded")
     if outcome == "abandoned":
         patch.setdefault("summary", f"Abandoned: {abandon_reason}")
         patch.setdefault("handoff", "Lesson abandoned before completion; no instructional claims are made.")
@@ -733,7 +740,7 @@ class Block:
         return True
 
 
-SHRINK_ORDER = ("suggested", "events", "handoff", "misconceptions", "resources", "snapshot")
+SHRINK_ORDER = ("suggested", "reviews", "events", "handoff", "gaps", "misconceptions", "resources", "snapshot", "item")
 
 
 def assemble(blocks: list[Block], max_chars: int) -> str:
@@ -743,7 +750,7 @@ def assemble(blocks: list[Block], max_chars: int) -> str:
         return sum(len(b.text) + 1 for b in blocks if b.text)
     for key in SHRINK_ORDER:
         for b in blocks:
-            while total() > max_chars and b.key == key and b.shrink():
+            while total() > max_chars and (b.key == key or b.key.startswith(key + "-")) and b.shrink():
                 omitted.append(f"{b.key} reduced")
     out = "\n".join(b.text for b in blocks if b.text)
     notes = sorted(set(omitted))

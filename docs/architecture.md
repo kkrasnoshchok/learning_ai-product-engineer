@@ -80,3 +80,8 @@ engine only records and validates what is reported.
 (additive optional frontmatter), so `progress.yaml` derivation is untouched. Planning reads only the activated approved curriculum snapshot,
 the mastery state and lesson records. `context` was extended in place (same entry point, new blocks and a size budget). Migration: none
 needed; programs without `sessions/` behave as before, and programs without a curriculum pipeline plan at competency level.
+
+## Assessment, mastery and review (Phase 6)
+`evidence.py` (pure derivations: mastery, evidence levels, review schedule, misconceptions), `assessment.py` (task/rubric workflow and the only commit path into the log),
+`review.py` (due queue, review sessions, progress, context blocks). The log remains the single source of truth; `state/mastery.yaml` and `state/evidence.yaml` are rebuilt from it plus lesson records.
+Writes are serialized by a per-program advisory lock. See `docs/assessment.md` and `engine/protocol/09-assessment-and-review.md`.

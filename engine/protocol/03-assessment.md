@@ -28,3 +28,9 @@ python3 scripts/los.py log <program-id> --lesson <n> --competency <id> --kind qu
 - Competency ids must exist in `program.yaml`. If you need a new competency, stop and use program authoring.
 - The command refreshes `state/mastery.yaml` for you. Statuses (unseen, learning, proficient, mastered)
   come from the program's `mastery_policy`; you do not set them.
+
+## Phase 6 note
+`log` still works, but a free-form line is **unverified** evidence (counts toward score/proficient, cannot earn strict `mastered`).
+For anything that should support mastery use the independent-assessment workflow in `09-assessment-and-review.md`
+(`assess create/submit/grade/commit`). Classify honestly when you do use `log`: `--independence independent` or
+`--independence assisted --assistance hint-N|worked-example|explained` (assisted events never count).

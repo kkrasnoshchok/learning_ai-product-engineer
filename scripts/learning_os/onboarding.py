@@ -169,6 +169,9 @@ def build_program(state: dict) -> dict:
     if "session_minutes" in state.get("constraints", {}):
         lp["target_minutes"] = state["constraints"]["session_minutes"]
     prog["lesson_policy"] = lp
+    for key in ("evidence_policy", "review_policy"):
+        if key in tpl:
+            prog[key] = tpl[key]
     prog["spec"] = {k: state[k] for k in (*SECTIONS, "approval") if k in state}
     return prog
 

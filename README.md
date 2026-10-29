@@ -8,6 +8,7 @@ a desktop coding agent (Claude Desktop Code tab or Codex Desktop) is the tutor; 
 - **Global preferences** (`learner/preferences.yaml`) are separate from program state.
 - **Subscription desktop agents only.** No API calls, keys, servers, or web UI. Tooling is offline, stdlib-only Python 3.
 - **File-first.** Markdown for instructions and educational documents, YAML for config and state, JSONL for the append-only assessment log.
+- **Evidence over exposure.** Mastery comes from independent, rubric-backed assessments and delayed reviews, not from teaching; see `docs/assessment.md`.
 - **Fresh context per lesson.** A lesson sees only a generated *context pack*, never old conversations.
 
 ## Quick start

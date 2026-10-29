@@ -8,7 +8,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from . import design, lifecycle, model, onboarding, miniyaml
+from . import assessment, design, lifecycle, model, onboarding, miniyaml, review
 
 
 def _print_report(report: model.Report, strict: bool) -> int:
@@ -45,7 +45,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     lg = sub.add_parser("log", help="append one assessment event and refresh mastery")
     lg.add_argument("program")
-    lg.add_argument("--lesson", type=int, required=True)
+    lg.add_argument("--lesson", type=int, help="lesson number (omit only with --review-session)")
+    lg.add_argument("--review-session", help="review-NNN (instead of --lesson)")
+    lg.add_argument("--independence", choices=["independent", "assisted"],
+                    help="classify the attempt; omitted = legacy/unverified evidence (prefer the `assess` workflow)")
+    lg.add_argument("--assistance", choices=["none", "hint-1", "hint-2", "hint-3", "hint-4", "worked-example", "explained"])
     lg.add_argument("--competency", required=True)
     lg.add_argument("--kind", required=True)
     lg.add_argument("--score", type=float, required=True)
@@ -82,7 +86,144 @@ def build_parser() -> argparse.ArgumentParser:
     osub.add_parser("list", help="list onboardings")
     _design_parsers(sub)
     _lesson_parsers(sub)
+    _assess_parsers(sub)
+    pr = sub.add_parser("progress", help="compact, evidence-based progress report (facts first, interpretation labelled)")
+    pr.add_argument("program")
+    pr.add_argument("--today", help="YYYY-MM-DD (default: today)")
     return p
+
+
+def _assess_parsers(sub) -> None:
+    a = sub.add_parser("assess", help="independent assessments: create/show/hint/submit/brief/grade/review/commit/void/status")
+    g = a.add_subparsers(dest="acmd", required=True)
+
+    def cmd(name, helptext, ident=True):
+        c = g.add_parser(name, help=helptext)
+        c.add_argument("program")
+        if ident:
+            c.add_argument("assessment", help="assessment id, e.g. asm-001")
+        c.add_argument("--ts", help=argparse.SUPPRESS)
+        return c
+
+    c = cmd("create", "issue an assessment from the Examiner's draft (task + private rubric)", ident=False)
+    c.add_argument("--file", required=True, help="draft YAML, or - for stdin")
+    c.add_argument("--review", help="review session id (default: the open lesson, else the open review session)")
+    cmd("show", "learner-facing task only (never the rubric or key)")
+    c = cmd("hint", "record help given before submission (makes the attempt assisted)")
+    c.add_argument("--level", required=True, choices=["hint-1", "hint-2", "hint-3", "hint-4", "worked-example", "explained"])
+    c.add_argument("--note")
+    c = cmd("submit", "record the learner's final answer")
+    c.add_argument("--answer", help="answer text")
+    c.add_argument("--file", help="YAML with `answer` and/or `responses` (item id -> text), or - for stdin")
+    cmd("brief", "Examiner brief with the private rubric (refuses before a submission exists)")
+    c = cmd("grade", "record the Examiner's grading (validated against the rubric)")
+    c.add_argument("--file", required=True, help="grading YAML, or - for stdin")
+    c = cmd("review", "human review of an ambiguous grading")
+    c.add_argument("--statement", help="the reviewer's decision in words")
+    c.add_argument("--credit", action="append", default=[], metavar="CRITERION=CREDIT", help="adjust a judged criterion (0-1)")
+    c.add_argument("--confirm", action="store_true", help="only after the human actually decided")
+    cmd("commit", "append the graded result to the evidence log (idempotent)")
+    c = cmd("void", "withdraw an uncommitted assessment")
+    c.add_argument("--reason")
+    cmd("status", "open assessments and their next step", ident=False)
+
+    r = sub.add_parser("review", help="spaced-repetition review: due/start/brief/status/skip/complete/abandon")
+    g = r.add_subparsers(dest="vcmd", required=True)
+
+    def rcmd(name, helptext):
+        c = g.add_parser(name, help=helptext)
+        c.add_argument("program")
+        c.add_argument("--ts", help=argparse.SUPPRESS)
+        return c
+
+    rcmd("due", "what is due, prioritized, within the daily limit (writes nothing)").add_argument("--today")
+    c = rcmd("start", "open a review session for today's queue (idempotent)")
+    c.add_argument("--today")
+    c.add_argument("--provider", choices=["claude", "codex", "other"])
+    c.add_argument("--thread")
+    rcmd("brief", "minimal context pack for the open review session").add_argument("--max-chars", type=int)
+    rcmd("status", "items and their next step")
+    c = rcmd("skip", "skip one item with a reason")
+    c.add_argument("--competency", required=True)
+    c.add_argument("--reason", required=True)
+    rcmd("complete", "finish the session (all items committed or skipped) and print its summary")
+    c = rcmd("abandon", "abandon the open review session")
+    c.add_argument("--reason")
+    c.add_argument("--confirm", action="store_true")
+
+
+def _assess(args) -> int:
+    root, c, pid = args.root, args.acmd, args.program
+    if c == "create":
+        task, what = assessment.create(root, pid, _read_patch(args), review_session=args.review, ts=args.ts)
+        print(what)
+        print(assessment.render_task(task))
+        print("next: show the learner ONLY the task above; they answer without help, then `assess submit`")
+    elif c == "show":
+        print(assessment.show(root, pid, args.assessment))
+    elif c == "hint":
+        t = assessment.hint(root, pid, args.assessment, args.level, args.note, args.ts)
+        print(f"{t['id']}: assistance now {t['attempt']['assistance']}; this attempt is ASSISTED and will not count as independent evidence")
+    elif c == "submit":
+        if args.file:
+            body = _read_patch(args)
+            if not isinstance(body, dict) or set(body) - {"answer", "responses"}:
+                raise ValueError("submission file must be a mapping with `answer` and/or `responses`")
+            t, what = assessment.submit(root, pid, args.assessment, str(body.get("answer", "")), body.get("responses"), args.ts)
+        else:
+            t, what = assessment.submit(root, pid, args.assessment, args.answer or "", None, args.ts)
+        print(what)
+        print(f"next: `assess brief {pid} {t['id']}` for the Examiner")
+    elif c == "brief":
+        print(assessment.brief(root, pid, args.assessment))
+    elif c == "grade":
+        t, what = assessment.grade(root, pid, args.assessment, _read_patch(args), args.ts)
+        print(what)
+    elif c == "review":
+        credits = {}
+        for item in args.credit:
+            k, _, v = item.partition("=")
+            credits[k] = float(v)
+        t, what = assessment.review_human(root, pid, args.assessment, confirm=args.confirm, statement=args.statement, credits=credits, ts=args.ts)
+        print(what)
+    elif c == "commit":
+        t, what = assessment.commit(root, pid, args.assessment, args.ts)
+        print(what)
+    elif c == "void":
+        t, what = assessment.void(root, pid, args.assessment, args.reason or "", args.ts)
+        print(what)
+    elif c == "status":
+        print(assessment.status_text(root, pid))
+    return 0
+
+
+def _review(args) -> int:
+    root, c, pid = args.root, args.vcmd, args.program
+    if c == "due":
+        today = date.fromisoformat(args.today) if args.today else date.today()
+        print(review.format_queue(review.queue(root, pid, today), today))
+    elif c == "start":
+        today = date.fromisoformat(args.today) if args.today else None
+        rs, what = review.start(root, pid, today=today, provider=args.provider, thread=args.thread, ts=args.ts)
+        print(what)
+        print(review.status_text(root, pid))
+        print(f"next: `review brief {pid}` is the briefing for this conversation")
+    elif c == "brief":
+        print(review.brief(root, pid, args.max_chars))
+    elif c == "status":
+        print(review.status_text(root, pid))
+    elif c == "skip":
+        review.skip(root, pid, args.competency, args.reason, args.ts)
+        print(f"skipped {args.competency}")
+    elif c == "complete":
+        rs, what = review.complete(root, pid, args.ts)
+        print(what)
+        print(rs["summary"])
+        print("next: tell the learner the review is done; start any lesson in a NEW conversation")
+    elif c == "abandon":
+        rs, what = review.abandon(root, pid, reason=args.reason, confirm=args.confirm, ts=args.ts)
+        print(what)
+    return 0
 
 
 def _lesson_parsers(sub) -> None:
@@ -114,7 +255,7 @@ def _lesson_parsers(sub) -> None:
     cmd("note", "record concepts/attempts/misconceptions/questions during the lesson", "file", "ts")
     cmd("pause", "pause the active lesson", "ts").add_argument("--note")
     cmd("resume", "resume a paused lesson in this conversation", "provider", "ts").add_argument("--takeover", action="store_true", help="the lesson is active in a conversation that no longer exists")
-    cmd("await-assessment", "instruction done; independent assessment still pending", "ts")
+    cmd("await-assessment", "instruction done; independent assessment still pending (see `assess`)", "ts")
     c = cmd("complete", "close the lesson: write the record, refresh derived state", "ts")
     c.add_argument("--file", help="closure YAML (summary, handoff, next_action, ...), or - for stdin; optional only when finishing an interrupted close")
     c.add_argument("--outcome", choices=["completed", "partial"], default="completed")
@@ -159,6 +300,9 @@ def _lesson(args) -> int:
     elif c == "abandon":
         doc, what = lifecycle.abandon_lesson(root, pid, reason=args.reason, confirm=args.confirm, ts=args.ts)
     print(f"{doc['id']}: {what} (status {doc['status']})")
+    if c == "await-assessment":
+        print(assessment.status_text(root, pid))
+        print("next: independent assessments via `assess create/submit/grade/commit` (protocol 09), then `lesson complete`")
     if c in ("complete", "abandon"):
         cl = doc["closure"]
         print(f"assessment: {cl['assessment']['status']}"
@@ -341,20 +485,34 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.cmd == "lesson":
             return _lesson(args)
+        if args.cmd == "assess":
+            return _assess(args)
+        if args.cmd == "review":
+            return _review(args)
+        if args.cmd == "progress":
+            print(review.progress_text(args.root, args.program, date.fromisoformat(args.today) if args.today else None))
+            return 0
         if args.cmd == "programs":
             for pid in model.list_programs(args.root):
                 try:
                     prog = miniyaml.loads((model.program_dir(args.root, pid) / "program.yaml").read_text("utf-8"))
                     cur = lifecycle.open_session(args.root, pid)
+                    rv = review.open_session(args.root, pid)
                     print(f"{pid}: {prog['title']} [{prog['status']}]"
-                          + (f"; open lesson {cur['id']} {cur['status']} on {cur['objectives'][0]}" if cur else ""))
+                          + (f"; open lesson {cur['id']} {cur['status']} on {cur['objectives'][0]}" if cur else "")
+                          + (f"; open review {rv['id']}" if rv else ""))
                 except (ValueError, OSError):
                     print(f"{pid}: (unreadable; run `validate`)")
             return 0
         if args.cmd == "log":
+            extra = {k: v for k, v in (("independence", args.independence), ("assistance", args.assistance),
+                                       ("review_session", args.review_session)) if v}
             ev = model.append_event(args.root, args.program, lesson=args.lesson, competency=args.competency,
-                                    kind=args.kind, score=args.score, notes=args.notes, ts=args.ts)
+                                    kind=args.kind, score=args.score, notes=args.notes, ts=args.ts, extra=extra)
             print(json.dumps(ev, ensure_ascii=False))
+            if "independence" not in ev:
+                print("note: unclassified (legacy) event: counts toward score/proficient, never toward strict `mastered`. "
+                      "Use the `assess` workflow for evidence that can support mastery.", file=sys.stderr)
             return 0
         if args.cmd == "rebuild":
             return _print_report(model.rebuild(args.root, args.program), False)

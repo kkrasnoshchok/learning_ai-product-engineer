@@ -1,0 +1,95 @@
+# Mutable record of ONE review session: programs/<id>/reviews/NNN.yaml. Separate from lesson sessions
+# (sessions/NNN.yaml): it never consumes a lesson number and never changes mastery. Evidence is the events
+# committed from its assessments.
+title: Review session
+type: object
+required: [schema_version, id, program, number, status, created, updated, today, items, history]
+additionalProperties: false
+"$defs":
+  id:
+    type: string
+    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+    maxLength: 48
+  ts:
+    type: string
+    format: date-time
+  status:
+    enum: [open, completed, abandoned]
+properties:
+  schema_version:
+    const: 1
+  id:
+    type: string
+    pattern: "^review-[0-9]{3}$"
+  program:
+    "$ref": "#/$defs/id"
+  number:
+    type: integer
+    minimum: 1
+  status:
+    "$ref": "#/$defs/status"
+  created:
+    "$ref": "#/$defs/ts"
+  updated:
+    "$ref": "#/$defs/ts"
+  today:
+    type: string
+    format: date
+    description: The date the queue was computed for.
+  provider:
+    type: object
+    additionalProperties: false
+    properties:
+      name:
+        enum: [claude, codex, other]
+      thread_ref:
+        type: string
+        maxLength: 200
+  items:
+    type: array
+    items:
+      type: object
+      required: [competency, objective, tier, reason]
+      additionalProperties: false
+      properties:
+        competency:
+          "$ref": "#/$defs/id"
+        objective:
+          type: string
+          pattern: "^[a-z0-9]+(-[a-z0-9]+)*:[a-z0-9]+(-[a-z0-9]+)*$"
+        tier:
+          enum: [failed, prerequisite-critical, overdue, due]
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+        due:
+          type: string
+          format: date
+        assessment_id:
+          type: string
+          pattern: "^asm-[0-9]{3,}$"
+        skipped:
+          type: string
+          maxLength: 300
+  summary:
+    type: string
+    maxLength: 2000
+  abandon_reason:
+    type: string
+    maxLength: 300
+  history:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      required: [ts, to]
+      additionalProperties: false
+      properties:
+        ts:
+          "$ref": "#/$defs/ts"
+        to:
+          "$ref": "#/$defs/status"
+        note:
+          type: string
+          maxLength: 300

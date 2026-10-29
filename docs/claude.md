@@ -22,6 +22,11 @@ No lesson is taught in either session.
 ## Lesson lifecycle (Phase 5)
 `/lesson [program-id]` resumes or plans a lesson (the tutor runs the commands; you never type ids), `/pause-lesson <id> [note]` pauses it, `/close-lesson <id>` completes it. Always start each in a **new session**. Details and limits: `docs/lessons.md`. The slash commands and live behavior were not exercised in Claude Desktop in this authoring session.
 
+## Assessment, mastery and review (Phase 6)
+- "Test my understanding of X" -> `/assess <id> X`; "What should I review today?" / "Start my review session" -> `/review <id>` (always a **new session**; it is not a lesson); "Show my learning progress" -> `/progress <id>`.
+- Claude uses the `examiner` subagent for tasks and grading and persists everything with `los.py assess ...` / `review ...`. Details and limits: `docs/assessment.md`.
+- Not exercised in Claude Desktop here: the commands and subagent hand-offs were only verified through the CLI and library tests.
+
 ## Tips
 - Approve the `python3 scripts/los.py ...` commands (and writes under `programs/`) when prompted; you can allow-list `python3 scripts/los.py` in your permission settings.
 - If a session accidentally covers two programs, close it and start fresh. The protocol forbids reading across programs.

@@ -1,13 +1,19 @@
 # One line of logs/assessments.jsonl. Append-only; never edited in place.
+# Phase 6 added OPTIONAL fields (everything after `notes`). Older lines stay valid unchanged; a line without
+# `independence` is "legacy/unverified" evidence. Exactly one of `lesson` / `review_session` must be present
+# (checked in code; JSON-Schema subset has no oneOf).
 title: Assessment event
 type: object
-required: [schema_version, ts, program, lesson, competency, kind, score]
+required: [schema_version, ts, program, competency, kind, score]
 additionalProperties: false
 $defs:
   id:
     type: string
     pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'
     maxLength: 48
+  objref:
+    type: string
+    pattern: '^[a-z0-9]+(-[a-z0-9]+)*:[a-z0-9]+(-[a-z0-9]+)*$'
 properties:
   schema_version:
     const: 1
@@ -30,3 +36,62 @@ properties:
   notes:
     type: string
     maxLength: 500
+  review_session:
+    type: string
+    pattern: '^review-[0-9]{3}$'
+  assessment_id:
+    type: string
+    pattern: '^asm-[0-9]{3,}$'
+  task_id:
+    $ref: '#/$defs/id'
+  type:
+    enum: [recall, application, transfer, delayed_review]
+  objective:
+    $ref: '#/$defs/objref'
+  curriculum_revision:
+    type: integer
+    minimum: 1
+  difficulty:
+    enum: [easy, medium, hard]
+  independence:
+    enum: [independent, assisted]
+  assistance:
+    enum: [none, hint-1, hint-2, hint-3, hint-4, worked-example, explained]
+  hints:
+    type: integer
+    minimum: 0
+  confidence:
+    enum: [low, medium, high]
+  grading_method:
+    enum: [auto, examiner, human_reviewed]
+  rubric_sha256:
+    type: string
+    pattern: '^[0-9a-f]{64}$'
+  evidence:
+    type: array
+    maxItems: 5
+    items:
+      type: string
+      minLength: 1
+      maxLength: 120
+  misconceptions:
+    type: array
+    maxItems: 5
+    items:
+      type: object
+      required: [text, status]
+      additionalProperties: false
+      properties:
+        text:
+          type: string
+          minLength: 3
+          maxLength: 200
+        status:
+          enum: [suspected, demonstrated]
+  resolves:
+    type: array
+    maxItems: 5
+    items:
+      type: string
+      minLength: 3
+      maxLength: 200

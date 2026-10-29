@@ -130,6 +130,50 @@ properties:
         type: integer
         minimum: 1
         maximum: 365
+  evidence_policy:
+    type: object
+    additionalProperties: false
+    description: "Optional (Phase 6). Absent = mode legacy, i.e. the pre-Phase-6 rule (only assisted events are excluded). strict gates `mastered` on structured, independent evidence."
+    properties:
+      mode:
+        enum:
+          - legacy
+          - strict
+      min_task_types:
+        type: integer
+        minimum: 1
+        maximum: 4
+        description: Distinct assessment types among valid passing events required for `mastered` (strict).
+      min_retention_days:
+        type: integer
+        minimum: 1
+        maximum: 365
+        description: A passing delayed review must come at least this many days after the first valid pass (strict).
+      require_transfer:
+        type: boolean
+        description: Also require a valid passing transfer assessment for `mastered` (strict).
+  review_policy:
+    type: object
+    additionalProperties: false
+    description: "Optional (Phase 6). Spaced-repetition settings. Defaults: intervals 1,3,7,14,30 days; 5 reviews per day; 5 minutes each."
+    properties:
+      intervals:
+        type: array
+        minItems: 2
+        maxItems: 10
+        items:
+          type: integer
+          minimum: 1
+          maximum: 365
+      max_per_day:
+        type: integer
+        minimum: 1
+        maximum: 50
+      minutes_per_item:
+        type: integer
+        minimum: 1
+        maximum: 60
+
   curriculum:
     type: object
     additionalProperties: false

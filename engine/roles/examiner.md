@@ -24,3 +24,11 @@ follow_up: <next item to confirm or probe, or none>
 Rules: score only the answer given; assisted work never scores 0.9 or above and is not mastery; when ambiguous, score
 lower and propose a follow-up; do not give the learner coaching in this output; you have not seen the tutoring dialogue,
 so do not guess it.
+
+## Phase 6 (assessment workflow, protocol 09)
+Mode A output is a YAML draft for `assess create`: `task_id`, `type` (recall|application|transfer|delayed_review), `competency`, `objective`, `difficulty`,
+`title`, `prompt`, optional `items` (`id`, `prompt`), and `rubric` (`answer_key`, `criteria`: `id`, `kind` objective|judged, `weight`, `description`;
+objective criteria add `item` + `check` {type exact|regex|number, accept|pattern|value, tolerance}; judged criteria add `full`, `partial`, `zero`;
+optional `misconception_signals`). Prefer objective checks. Mode B input is the output of `assess brief`; return exactly the grading YAML it specifies,
+with quoted evidence for every judged criterion, honest `confidence`, and `misconceptions` (`suspected`/`demonstrated`). Never override an auto-graded criterion.
+You never receive, and must not request, the tutoring dialogue.

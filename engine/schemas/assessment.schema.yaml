@@ -1,0 +1,231 @@
+# LEARNER-FACING record of one assessment: programs/<id>/assessments/asm-NNN/task.yaml.
+# Mutable lifecycle (issued -> submitted -> graded|needs_review -> committed|void), never evidence by itself:
+# only the event it commits to logs/assessments.jsonl changes mastery. The private rubric/answer key lives in
+# private.yaml (schema assessment-key); only its sha256 is referenced here so later edits are detectable.
+title: Assessment task
+type: object
+required: [schema_version, id, task_id, program, type, competency, objective, difficulty, title, prompt, rubric_sha256, status, created, updated, attempt, history]
+additionalProperties: false
+"$defs":
+  id:
+    type: string
+    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+    maxLength: 48
+  objref:
+    type: string
+    pattern: "^[a-z0-9]+(-[a-z0-9]+)*:[a-z0-9]+(-[a-z0-9]+)*$"
+  ts:
+    type: string
+    format: date-time
+  text:
+    type: string
+    minLength: 1
+    maxLength: 4000
+  status:
+    enum: [issued, submitted, graded, needs_review, committed, void]
+  assistance:
+    enum: [none, hint-1, hint-2, hint-3, hint-4, worked-example, explained]
+properties:
+  schema_version:
+    const: 1
+  id:
+    type: string
+    pattern: "^asm-[0-9]{3,}$"
+  task_id:
+    "$ref": "#/$defs/id"
+  program:
+    "$ref": "#/$defs/id"
+  type:
+    enum: [recall, application, transfer, delayed_review]
+  competency:
+    "$ref": "#/$defs/id"
+  objective:
+    "$ref": "#/$defs/objref"
+  curriculum_revision:
+    type: integer
+    minimum: 1
+  difficulty:
+    enum: [easy, medium, hard]
+  lesson:
+    type: integer
+    minimum: 1
+  review_session:
+    type: string
+    pattern: "^review-[0-9]{3}$"
+  title:
+    type: string
+    minLength: 1
+    maxLength: 120
+  prompt:
+    "$ref": "#/$defs/text"
+  items:
+    type: array
+    maxItems: 10
+    items:
+      type: object
+      required: [id, prompt]
+      additionalProperties: false
+      properties:
+        id:
+          "$ref": "#/$defs/id"
+        prompt:
+          "$ref": "#/$defs/text"
+  rubric_sha256:
+    type: string
+    pattern: "^[0-9a-f]{64}$"
+  status:
+    "$ref": "#/$defs/status"
+  created:
+    "$ref": "#/$defs/ts"
+  updated:
+    "$ref": "#/$defs/ts"
+  attempt:
+    type: object
+    required: [assistance, hints]
+    additionalProperties: false
+    description: assistance is the strongest help given before submission; none = independent attempt.
+    properties:
+      assistance:
+        "$ref": "#/$defs/assistance"
+      hints:
+        type: array
+        items:
+          type: object
+          required: [ts, level]
+          additionalProperties: false
+          properties:
+            ts:
+              "$ref": "#/$defs/ts"
+            level:
+              "$ref": "#/$defs/assistance"
+            note:
+              type: string
+              maxLength: 300
+  submission:
+    type: object
+    required: [ts, answer, sha256]
+    additionalProperties: false
+    properties:
+      ts:
+        "$ref": "#/$defs/ts"
+      answer:
+        type: string
+        maxLength: 8000
+      responses:
+        type: object
+        propertyNames:
+          "$ref": "#/$defs/id"
+        additionalProperties:
+          type: string
+          maxLength: 2000
+      sha256:
+        type: string
+        pattern: "^[0-9a-f]{64}$"
+  grading:
+    type: object
+    required: [ts, method, raw_score, score, confidence, criteria, feedback]
+    additionalProperties: false
+    properties:
+      ts:
+        "$ref": "#/$defs/ts"
+      method:
+        enum: [auto, examiner, human_reviewed]
+      raw_score:
+        type: number
+        minimum: 0
+        maximum: 1
+      score:
+        type: number
+        minimum: 0
+        maximum: 1
+        description: raw_score after the assistance cap (hints lower the score).
+      confidence:
+        enum: [low, medium, high]
+      uncertainty:
+        type: string
+        maxLength: 500
+      criteria:
+        type: object
+        propertyNames:
+          "$ref": "#/$defs/id"
+        additionalProperties:
+          type: object
+          required: [credit, source]
+          additionalProperties: false
+          properties:
+            credit:
+              type: number
+              minimum: 0
+              maximum: 1
+            source:
+              enum: [auto, examiner, human]
+            evidence:
+              type: string
+              maxLength: 500
+      feedback:
+        type: string
+        minLength: 1
+        maxLength: 1500
+      misconceptions:
+        type: array
+        maxItems: 5
+        items:
+          type: object
+          required: [text, status]
+          additionalProperties: false
+          properties:
+            text:
+              type: string
+              minLength: 3
+              maxLength: 200
+            status:
+              enum: [suspected, demonstrated]
+      resolves:
+        type: array
+        maxItems: 5
+        items:
+          type: string
+          minLength: 3
+          maxLength: 200
+      review_reason:
+        type: string
+        maxLength: 500
+  review:
+    type: object
+    required: [ts, statement]
+    additionalProperties: false
+    properties:
+      ts:
+        "$ref": "#/$defs/ts"
+      statement:
+        type: string
+        minLength: 1
+        maxLength: 500
+  commit:
+    type: object
+    required: [ts, event]
+    additionalProperties: false
+    properties:
+      ts:
+        "$ref": "#/$defs/ts"
+      event:
+        type: string
+        pattern: "^logs/assessments\\.jsonl:[0-9]+$"
+  void_reason:
+    type: string
+    maxLength: 500
+  history:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      required: [ts, to]
+      additionalProperties: false
+      properties:
+        ts:
+          "$ref": "#/$defs/ts"
+        to:
+          "$ref": "#/$defs/status"
+        note:
+          type: string
+          maxLength: 500

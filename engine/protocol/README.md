@@ -12,6 +12,7 @@ run lessons, never *what* to teach (that is in each program's `program.yaml`).
 7. [Research and curriculum](07-research-and-curriculum.md): approved spec to researched, personalized, approved curriculum (replaces the manual drafting in 05 when used)
 
 8. [Lesson lifecycle](08-lesson-lifecycle.md): planning, state machine, pause/resume/complete/abandon (with 02 as the tutoring dialogue)
+9. [Assessment, mastery and review](09-assessment-and-review.md): independent assessments, evidence classes, misconceptions, spaced-repetition review sessions, progress
 
 Cross-cutting: [policies](../policies/README.md) (teaching, assessment, delegation) and [roles](../roles/README.md).
 

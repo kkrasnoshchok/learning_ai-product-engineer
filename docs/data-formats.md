@@ -46,6 +46,11 @@ Schemas: `research-plan`, `research-registry`, `competency-map`, `curriculum` (+
 ## Onboarding state
 `onboarding/<id>/state.yaml` (schema `engine/schemas/onboarding.schema.yaml`): status `draft | in_review | approved`, a `revision` counter, and the sections `goal`, `profile`, `constraints`, `assumptions`, `open_questions` (+ `approval` once approved). `goals.md` and `program.draft.yaml` beside it are derived previews. On approval the sections are frozen into `programs/<id>/program.yaml` under the optional `spec` key, with a placeholder curriculum.
 
+## Assessment, evidence and review (Phase 6)
+`assessment-event` gained optional fields (independence, type, assessment_id, rubric_sha256, misconceptions, ...) and `review_session` as an alternative to `lesson`.
+New: `assessments/asm-NNN/task.yaml` (`assessment`), `private.yaml` (`assessment-key`), `reviews/NNN.yaml` (`review-session`), derived `state/evidence.yaml` (`evidence-state`);
+`program.yaml` optional `evidence_policy` and `review_policy`. Full reference, migration and limitations: `docs/assessment.md`.
+
 ## Lesson sessions (`programs/<id>/sessions/NNN.yaml`, Phase 5)
 Schema `lesson-session`: `id` (`lesson-NNN`), `status` (planned | active | paused | awaiting_assessment | completed | abandoned), `curriculum`
 (`pinned` with revision + sha256, or `legacy`), `selection` (auto | manual | override, reason, optional learner-approved override), `objectives`
