@@ -29,3 +29,6 @@ Auth: your ChatGPT/Codex subscription sign-in in the desktop app. Nothing in thi
 `.codex/config.toml` sets `[agents] max_concurrent_threads_per_session = 3`. Ask explicitly: "spawn the examiner to ...".
 Codex custom agents inherit the parent sandbox, so read-only behaviour is by instruction, not enforcement.
 Not verified: no Codex binary exists in the authoring environment, so delegation in Codex Desktop was never run.
+
+## Research and curriculum (Phase 4)
+After onboarding, use a **new conversation per stage** (protocol 07): research planning and review, source research, competency discovery, curriculum drafting and review, approval and activation. Begin each with `python3 scripts/los.py curriculum status <id>`. Web research only works if this app session actually has web tools; otherwise the Tutor records the limitation and tasks stay pending.

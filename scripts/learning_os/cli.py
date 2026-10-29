@@ -8,7 +8,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from . import model, onboarding, miniyaml
+from . import design, model, onboarding, miniyaml
 
 
 def _print_report(report: model.Report, strict: bool) -> int:
@@ -76,7 +76,125 @@ def build_parser() -> argparse.ArgumentParser:
     o.add_argument("--confirm", action="store_true", help="only after the learner said yes in chat")
     o.add_argument("--date")
     osub.add_parser("list", help="list onboardings")
+    _design_parsers(sub)
     return p
+
+
+def _design_parsers(sub) -> None:
+    def cmd(group, name, helptext, *flags):
+        c = group.add_parser(name, help=helptext)
+        c.add_argument("id")
+        for f in flags:
+            if f == "file":
+                c.add_argument("--file", required=True, help="YAML file, or - for stdin")
+            elif f == "today":
+                c.add_argument("--today", help="YYYY-MM-DD (default: today)")
+            elif f == "approve":
+                c.add_argument("--revision", type=int, required=True, help="the revision the learner reviewed")
+                c.add_argument("--statement", required=True, help="the learner's approving words")
+                c.add_argument("--confirm", action="store_true", help="only after the learner said yes in chat")
+            else:
+                c.add_argument(f"--{f}")
+        return c
+
+    rs = sub.add_parser("research", help="research planning and source registry (needs an approved onboarding)")
+    g = rs.add_subparsers(dest="rcmd", required=True)
+    cmd(g, "init", "create the research plan from the approved spec", "today")
+    cmd(g, "plan-update", "replace top-level plan sections from a YAML mapping", "file")
+    cmd(g, "plan-show", "learner review view of the plan")
+    cmd(g, "plan-submit", "mark the plan ready for learner review")
+    cmd(g, "plan-approve", "record the learner's approval of the reviewed plan revision", "approve", "today")
+    cmd(g, "add", "upsert sources/findings/tasks, append limitations, set browsing", "file", "today")
+    cmd(g, "brief", "compact context for resuming research", "question", "source")
+    cmd(g, "status", "stage and next step")
+
+    cu = sub.add_parser("curriculum", help="competency map, personalized curriculum, approval, activation")
+    g = cu.add_subparsers(dest="ccmd", required=True)
+    cmd(g, "competencies-set", "replace the domain competency map (validates the graph)", "file", "today")
+    cmd(g, "competencies-show", "print the competency map")
+    cmd(g, "update", "replace top-level draft sections (personalization, modules, checkpoints, capstone)", "file")
+    cmd(g, "rebase", "re-stamp the draft on the current spec/plan/map (new revision)")
+    cmd(g, "check", "run every deterministic curriculum check", "today")
+    cmd(g, "submit", "mark the draft ready for learner review", "today")
+    cmd(g, "show", "learner review view of the whole curriculum")
+    cmd(g, "approve", "record the learner's approval of the reviewed revision", "approve", "today")
+    cmd(g, "activate", "write an approved revision into program.yaml", "today").add_argument("--revision", type=int, required=True)
+    cmd(g, "versions", "list preserved snapshots")
+    cmd(g, "brief", "compact context for resuming curriculum design", "competency")
+    cmd(g, "status", "stage and next step")
+
+
+def _read_patch(args):
+    text = sys.stdin.read() if args.file == "-" else Path(args.file).read_text("utf-8")
+    try:
+        return miniyaml.loads(text)
+    except miniyaml.YamlError as exc:
+        raise ValueError(f"cannot parse YAML: {exc}")
+
+
+def _research(args) -> int:
+    root, c, pid = args.root, args.rcmd, args.id
+    if c == "init":
+        print(f"created {design.init_plan(root, pid, args.today)}")
+        print("next:", design.stage(root, pid)[1])
+    elif c == "plan-update":
+        d = design.update_doc(root, pid, "plan", _read_patch(args))
+        print(f"plan: {d['status']} revision {d['revision']}")
+    elif c == "plan-show":
+        print(design.render_plan(root, pid))
+    elif c == "plan-submit":
+        d = design.submit_doc(root, pid, "plan")
+        print(f"plan: in_review revision {d['revision']}")
+    elif c == "plan-approve":
+        d = design.approve_doc(root, pid, "plan", revision=args.revision, statement=args.statement,
+                               confirm=args.confirm, today=args.today)
+        print(f"plan revision {d['revision']} approved; registry ready. Research may start.")
+    elif c == "add":
+        reg = design.add_research(root, pid, _read_patch(args), args.today)
+        print(f"registry: {len(reg['sources'])} source(s), {len(reg['findings'])} finding(s), "
+              f"{sum(t['status'] == 'pending' for t in reg['tasks'])} task(s) pending")
+    elif c == "brief":
+        print(design.research_brief(root, pid, args.question, args.source))
+    elif c == "status":
+        print(design.status_text(root, pid))
+    return 0
+
+
+def _curriculum(args) -> int:
+    root, c, pid = args.root, args.ccmd, args.id
+    if c == "competencies-set":
+        m = design.set_map(root, pid, _read_patch(args), args.today)
+        print(f"competency map revision {m['revision']}: {len(m['competencies'])} competencies, graph valid")
+    elif c == "competencies-show":
+        print(miniyaml.dumps(design.load_map(root, pid)))
+    elif c == "update":
+        d = design.update_curriculum(root, pid, _read_patch(args))
+        print(f"curriculum: {d['status']} revision {d['revision']}")
+    elif c == "rebase":
+        d = design.rebase_curriculum(root, pid)
+        print(f"curriculum: {d['status']} revision {d['revision']} on current basis")
+    elif c == "check":
+        rep = design.check_curriculum(root, pid, design.load_curriculum(root, pid), today=args.today)
+        return _print_report(rep, False)
+    elif c == "submit":
+        d = design.submit_doc(root, pid, "curriculum", args.today)
+        print(f"curriculum: in_review revision {d['revision']}")
+    elif c == "show":
+        print(design.render_curriculum(root, pid))
+    elif c == "approve":
+        d = design.approve_doc(root, pid, "curriculum", revision=args.revision, statement=args.statement,
+                               confirm=args.confirm, today=args.today)
+        print(f"curriculum revision {d['revision']} approved and preserved. Next: `curriculum activate --revision {d['revision']}`")
+    elif c == "activate":
+        design.activate(root, pid, args.revision, args.today)
+        print(f"activated revision {args.revision} in programs/{pid}/program.yaml (logs, state and lessons untouched)")
+    elif c == "versions":
+        print("\n".join(design.versions(root, pid)) or "(no preserved versions)")
+    elif c == "brief":
+        print(design.curriculum_brief(root, pid, args.competency))
+    elif c == "status":
+        print(design.status_text(root, pid))
+    return 0
 
 
 def _onboarding(args) -> int:
@@ -119,6 +237,10 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.cmd == "onboarding":
             return _onboarding(args)
+        if args.cmd == "research":
+            return _research(args)
+        if args.cmd == "curriculum":
+            return _curriculum(args)
         if args.cmd == "validate":
             return _print_report(model.validate_root(args.root, args.program), args.strict)
         if args.cmd == "new-program":

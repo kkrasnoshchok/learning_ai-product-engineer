@@ -1,0 +1,216 @@
+# Personalized curriculum draft / approved snapshot
+# (programs/<id>/design/curriculum/draft.yaml and versions/rNNN.yaml).
+# Objective references have the form <competency-id>:<objective-id>.
+title: Curriculum
+type: object
+required: [schema_version, id, status, revision, created, basis, personalization, modules, checkpoints]
+additionalProperties: false
+"$defs":
+  id:
+    type: string
+    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+    maxLength: 48
+  text:
+    type: string
+    minLength: 1
+    maxLength: 1000
+  ids:
+    type: array
+    uniqueItems: true
+    items:
+      "$ref": "#/$defs/id"
+  objref:
+    type: string
+    pattern: "^[a-z0-9]+(-[a-z0-9]+)*:[a-z0-9]+(-[a-z0-9]+)*$"
+  hours:
+    type: number
+    exclusiveMinimum: 0
+    maximum: 1000
+properties:
+  schema_version:
+    const: 1
+  id:
+    "$ref": "#/$defs/id"
+  status:
+    enum: [draft, in_review, approved]
+  revision:
+    type: integer
+    minimum: 1
+  created:
+    type: string
+    format: date
+  basis:
+    type: object
+    required: [onboarding_revision, plan_revision, competencies_revision]
+    additionalProperties: false
+    properties:
+      onboarding_revision:
+        type: integer
+        minimum: 1
+      plan_revision:
+        type: integer
+        minimum: 1
+      competencies_revision:
+        type: integer
+        minimum: 1
+  personalization:
+    type: object
+    required: [decisions, sequence]
+    additionalProperties: false
+    properties:
+      decisions:
+        type: array
+        items:
+          type: object
+          required: [competency, disposition, rationale, evidence]
+          additionalProperties: false
+          properties:
+            competency:
+              "$ref": "#/$defs/id"
+            disposition:
+              enum: [study, verify, deprioritize]
+            rationale:
+              "$ref": "#/$defs/text"
+            evidence:
+              type: array
+              minItems: 1
+              items:
+                type: object
+                required: [kind, ref]
+                additionalProperties: false
+                properties:
+                  kind:
+                    enum: [self_reported, diagnostic, goal, constraint, domain_research]
+                  ref:
+                    "$ref": "#/$defs/text"
+      sequence:
+        "$ref": "#/$defs/ids"
+  modules:
+    type: array
+    items:
+      type: object
+      required: [id, title, competencies, objectives, prerequisites, resources, exercises, assessments, completion_criteria, est_hours]
+      additionalProperties: false
+      properties:
+        id:
+          "$ref": "#/$defs/id"
+        title:
+          type: string
+          minLength: 1
+          maxLength: 120
+        competencies:
+          "$ref": "#/$defs/ids"
+        objectives:
+          type: array
+          uniqueItems: true
+          items:
+            "$ref": "#/$defs/objref"
+        prerequisites:
+          "$ref": "#/$defs/ids"
+        resources:
+          type: array
+          items:
+            type: object
+            required: [source, use]
+            additionalProperties: false
+            properties:
+              source:
+                "$ref": "#/$defs/id"
+              use:
+                enum: [primary, supplementary]
+              note:
+                "$ref": "#/$defs/text"
+        exercises:
+          type: array
+          items:
+            type: object
+            required: [id, title, objectives, est_hours]
+            additionalProperties: false
+            properties:
+              id:
+                "$ref": "#/$defs/id"
+              title:
+                "$ref": "#/$defs/text"
+              objectives:
+                type: array
+                items:
+                  "$ref": "#/$defs/objref"
+              est_hours:
+                "$ref": "#/$defs/hours"
+        assessments:
+          type: array
+          items:
+            type: object
+            required: [id, title, objectives, purpose, independent]
+            additionalProperties: false
+            properties:
+              id:
+                "$ref": "#/$defs/id"
+              title:
+                "$ref": "#/$defs/text"
+              objectives:
+                type: array
+                items:
+                  "$ref": "#/$defs/objref"
+              purpose:
+                enum: [diagnostic, mastery]
+              independent:
+                type: boolean
+              est_hours:
+                "$ref": "#/$defs/hours"
+        completion_criteria:
+          type: array
+          items:
+            "$ref": "#/$defs/text"
+        est_hours:
+          "$ref": "#/$defs/hours"
+  checkpoints:
+    type: array
+    items:
+      type: object
+      required: [id, title, after_module, reviews]
+      additionalProperties: false
+      properties:
+        id:
+          "$ref": "#/$defs/id"
+        title:
+          "$ref": "#/$defs/text"
+        after_module:
+          "$ref": "#/$defs/id"
+        reviews:
+          "$ref": "#/$defs/ids"
+        est_hours:
+          "$ref": "#/$defs/hours"
+  capstone:
+    type: object
+    required: [title, description, competencies, completion_criteria, est_hours]
+    additionalProperties: false
+    properties:
+      title:
+        "$ref": "#/$defs/text"
+      description:
+        "$ref": "#/$defs/text"
+      competencies:
+        "$ref": "#/$defs/ids"
+      completion_criteria:
+        type: array
+        items:
+          "$ref": "#/$defs/text"
+      est_hours:
+        "$ref": "#/$defs/hours"
+  approval:
+    type: object
+    required: [revision, date, statement, content_sha256]
+    additionalProperties: false
+    properties:
+      revision:
+        type: integer
+        minimum: 1
+      date:
+        type: string
+        format: date
+      statement:
+        "$ref": "#/$defs/text"
+      content_sha256:
+        type: string
+        pattern: "^[0-9a-f]{64}$"

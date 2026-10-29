@@ -350,9 +350,11 @@ def validate_root(root: Path, program: str | None = None) -> Report:
     else:
         report.warn("learner/preferences.yaml", "not found; lessons will use defaults")
     targets = [program] if program else list_programs(root)
+    from . import design  # lazy: design imports model
     for pid in targets:
         try:
             report.extend(validate_program(root, pid))
+            design.validate_program(root, pid, report)
         except ValueError as exc:
             report.error(f"programs/{pid}", str(exc))
     if not program:

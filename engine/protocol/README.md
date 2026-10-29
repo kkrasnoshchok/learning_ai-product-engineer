@@ -9,6 +9,7 @@ run lessons, never *what* to teach (that is in each program's `program.yaml`).
 4. [Session close](04-session-close.md): handoff, derived state, validation
 5. [Program authoring](05-program-authoring.md): authoring the curriculum of a program
 6. [Program onboarding](06-program-onboarding.md): learner goal to approved program spec (precedes 05)
+7. [Research and curriculum](07-research-and-curriculum.md): approved spec to researched, personalized, approved curriculum (replaces the manual drafting in 05 when used)
 
 Cross-cutting: [policies](../policies/README.md) (teaching, assessment, delegation) and [roles](../roles/README.md).
 

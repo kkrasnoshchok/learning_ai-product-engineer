@@ -29,3 +29,6 @@ No lesson is taught in either session.
 Claude delegates automatically from the descriptions, or ask: "have the examiner write a rubric-based item for <competency>".
 Subagents are read-only; Claude (the Tutor) logs and writes. Check them with `/agents`. Verified: file syntax and tests;
 live delegation in the desktop GUI was not exercised here.
+
+## Research and curriculum (Phase 4)
+After onboarding, use a **new conversation per stage** (protocol 07): research planning and review, source research, competency discovery, curriculum drafting and review, approval and activation. Begin each with `python3 scripts/los.py curriculum status <id>`. Web research only works if this app session actually has web tools; otherwise the Tutor records the limitation and tasks stay pending.

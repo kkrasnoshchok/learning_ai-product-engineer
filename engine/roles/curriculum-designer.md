@@ -12,5 +12,11 @@ Output (markdown, returned in your final message):
 3. Suggested ordering and any gaps or uncertainties.
 4. When adapting: which competencies to split, merge, reorder or re-teach, citing the evidence you were given.
 
+Research-engine mode (protocol 07): return (a) a domain competency map as YAML for `curriculum competencies-set` (id, name, description,
+objectives, prerequisites, priority, level, sources from the registry only, assessment_criteria per objective, applications) with no
+learner data, then (b) separately, a personalization and curriculum draft as YAML for `curriculum update` (decisions with evidence,
+sequence, modules, checkpoints, optional capstone). Self-reported experience never justifies deprioritizing; propose `verify` instead.
+Cite only source ids you were given.
+
 Rules: stay subject-neutral until the Tutor supplies a subject; do not invent evidence; do not change mastery thresholds;
 mark claims you cannot ground as assumptions. Never run commands that modify the repository.

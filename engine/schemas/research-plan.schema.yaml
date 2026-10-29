@@ -1,0 +1,138 @@
+# Research plan of one program (programs/<id>/design/research/plan.yaml).
+# Planning only: it says WHAT to find out and how to judge sources, never the findings.
+title: Research plan
+type: object
+required: [schema_version, id, status, revision, created, basis, outcomes, questions, source_categories, quality_criteria, gaps, tasks]
+additionalProperties: false
+"$defs":
+  id:
+    type: string
+    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+    maxLength: 48
+  text:
+    type: string
+    minLength: 1
+    maxLength: 1000
+  ids:
+    type: array
+    uniqueItems: true
+    items:
+      "$ref": "#/$defs/id"
+properties:
+  schema_version:
+    const: 1
+  id:
+    "$ref": "#/$defs/id"
+  status:
+    enum: [draft, in_review, approved]
+  revision:
+    type: integer
+    minimum: 1
+  created:
+    type: string
+    format: date
+  basis:
+    type: object
+    required: [onboarding_revision]
+    additionalProperties: false
+    properties:
+      onboarding_revision:
+        type: integer
+        minimum: 1
+  outcomes:
+    type: array
+    description: Intended learner outcomes, seeded from the approved onboarding spec.
+    items:
+      type: object
+      required: [id, text]
+      additionalProperties: false
+      properties:
+        id:
+          "$ref": "#/$defs/id"
+        text:
+          "$ref": "#/$defs/text"
+  questions:
+    type: array
+    items:
+      type: object
+      required: [id, text, outcomes, priority]
+      additionalProperties: false
+      properties:
+        id:
+          "$ref": "#/$defs/id"
+        text:
+          "$ref": "#/$defs/text"
+        outcomes:
+          "$ref": "#/$defs/ids"
+        priority:
+          enum: [high, medium, low]
+  source_categories:
+    type: array
+    items:
+      type: object
+      required: [id, type, purpose, min_sources]
+      additionalProperties: false
+      properties:
+        id:
+          "$ref": "#/$defs/id"
+        type:
+          enum: [official-docs, paper, textbook, course, industry-practice, competency-framework, job-posting, project, expert-article, case-study, other]
+        purpose:
+          "$ref": "#/$defs/text"
+        min_sources:
+          type: integer
+          minimum: 1
+  quality_criteria:
+    type: array
+    items:
+      type: object
+      required: [id, text]
+      additionalProperties: false
+      properties:
+        id:
+          "$ref": "#/$defs/id"
+        text:
+          "$ref": "#/$defs/text"
+  gaps:
+    type: array
+    description: Information not yet known (about the domain or the learner) that research should close.
+    items:
+      type: object
+      required: [id, text]
+      additionalProperties: false
+      properties:
+        id:
+          "$ref": "#/$defs/id"
+        text:
+          "$ref": "#/$defs/text"
+  tasks:
+    type: array
+    items:
+      type: object
+      required: [id, question, category, description]
+      additionalProperties: false
+      properties:
+        id:
+          "$ref": "#/$defs/id"
+        question:
+          "$ref": "#/$defs/id"
+        category:
+          "$ref": "#/$defs/id"
+        description:
+          "$ref": "#/$defs/text"
+  approval:
+    type: object
+    required: [revision, date, statement, content_sha256]
+    additionalProperties: false
+    properties:
+      revision:
+        type: integer
+        minimum: 1
+      date:
+        type: string
+        format: date
+      statement:
+        "$ref": "#/$defs/text"
+      content_sha256:
+        type: string
+        pattern: "^[0-9a-f]{64}$"

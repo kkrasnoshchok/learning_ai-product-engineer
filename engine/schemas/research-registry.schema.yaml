@@ -1,0 +1,136 @@
+# Source registry and evidence ledger (programs/<id>/design/research/registry.yaml).
+# Four things are kept apart: discovered sources, inspected sources, verified claims,
+# and model hypotheses / recommendations. There is deliberately no field for quotations.
+title: Research registry
+type: object
+required: [schema_version, id, basis, browsing, sources, findings, tasks, limitations]
+additionalProperties: false
+"$defs":
+  id:
+    type: string
+    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+    maxLength: 48
+  text:
+    type: string
+    minLength: 1
+    maxLength: 1000
+  ids:
+    type: array
+    uniqueItems: true
+    items:
+      "$ref": "#/$defs/id"
+properties:
+  schema_version:
+    const: 1
+  id:
+    "$ref": "#/$defs/id"
+  basis:
+    type: object
+    required: [plan_revision]
+    additionalProperties: false
+    properties:
+      plan_revision:
+        type: integer
+        minimum: 1
+  browsing:
+    enum: [available, unavailable, unknown]
+    description: Whether the host agent actually has web tools. Unavailable means nothing can be marked inspected from the web.
+  sources:
+    type: array
+    items:
+      type: object
+      required: [id, title, type, status, relevance, quality, limitations]
+      additionalProperties: false
+      properties:
+        id:
+          "$ref": "#/$defs/id"
+        title:
+          "$ref": "#/$defs/text"
+        url:
+          type: string
+          pattern: "^https?://\\S+$"
+          maxLength: 1000
+        citation:
+          "$ref": "#/$defs/text"
+        author:
+          "$ref": "#/$defs/text"
+        publisher:
+          "$ref": "#/$defs/text"
+        published:
+          type: string
+          pattern: "^(unknown|\\d{4}(-\\d{2}(-\\d{2})?)?)$"
+        accessed:
+          type: string
+          format: date
+        type:
+          enum: [official-docs, paper, textbook, course, industry-practice, competency-framework, job-posting, project, expert-article, case-study, other]
+        status:
+          enum: [discovered, inspected, verified, unavailable]
+        inspection:
+          enum: [browsed, learner-provided, local-file]
+        relevance:
+          type: object
+          required: [questions, note]
+          additionalProperties: false
+          properties:
+            questions:
+              "$ref": "#/$defs/ids"
+            note:
+              "$ref": "#/$defs/text"
+        quality:
+          type: object
+          required: [rating, rationale]
+          additionalProperties: false
+          properties:
+            rating:
+              enum: [high, medium, low, unrated]
+            rationale:
+              "$ref": "#/$defs/text"
+        limitations:
+          "$ref": "#/$defs/text"
+  findings:
+    type: array
+    items:
+      type: object
+      required: [id, kind, text, status, sources, questions, confidence]
+      additionalProperties: false
+      properties:
+        id:
+          "$ref": "#/$defs/id"
+        kind:
+          enum: [claim, hypothesis, recommendation]
+        text:
+          "$ref": "#/$defs/text"
+        status:
+          enum: [verified, unverified, disputed]
+        sources:
+          "$ref": "#/$defs/ids"
+        questions:
+          "$ref": "#/$defs/ids"
+        confidence:
+          enum: [low, medium, high]
+  tasks:
+    type: array
+    items:
+      type: object
+      required: [id, status]
+      additionalProperties: false
+      properties:
+        id:
+          "$ref": "#/$defs/id"
+        status:
+          enum: [pending, done, blocked]
+        note:
+          "$ref": "#/$defs/text"
+  limitations:
+    type: array
+    items:
+      type: object
+      required: [date, text]
+      additionalProperties: false
+      properties:
+        date:
+          type: string
+          format: date
+        text:
+          "$ref": "#/$defs/text"

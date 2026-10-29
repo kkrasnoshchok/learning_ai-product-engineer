@@ -33,5 +33,14 @@ Block maps/lists, scalars (null, bool, int, float, plain/quoted strings), flow l
 
 Schema conformity; id/directory match; unique competency ids; prerequisites exist and are acyclic; threshold ordering; log lines parse, reference known competencies and existing lessons, timestamps non-decreasing; lesson files named `NNN-slug.md`, numbered 1..N, with Summary and Handoff sections; derived state equals fresh derivation. Warnings: missing preferences, `TODO` placeholders (errors under `--strict`).
 
+## Research and curriculum (`programs/<id>/design/`)
+Schemas: `research-plan`, `research-registry`, `competency-map`, `curriculum` (+ optional `curriculum` pointer in `program.yaml`).
+- `research/plan.yaml`: outcomes (seeded from the spec), questions, source categories, quality criteria, gaps, tasks; `status`, `revision`, `approval` (with `content_sha256`).
+- `research/registry.yaml`: `browsing` (available|unavailable|unknown), `sources` (status discovered|inspected|verified|unavailable; url or citation; accessed; inspection; relevance; quality; limitations), `findings` (claim|hypothesis|recommendation; only claims with an inspected source may be verified), `tasks` (pending|done|blocked), `limitations`. No quote field.
+- `competencies.yaml`: domain-wide, learner-free; objectives, prerequisites, priority, level, sources, assessment criteria, applications.
+- `curriculum/draft.yaml`: `basis` revisions, `personalization` (decisions with evidence kinds, sequence), `modules`, `checkpoints`, optional `capstone`.
+- `*/versions/`: approved plan/curriculum snapshots, replaced competency maps, `program-before-rNNN.yaml`.
+`validate` additionally checks schema, ids, references, approval hashes, snapshot presence and that active `competencies` equal the activated revision.
+
 ## Onboarding state
 `onboarding/<id>/state.yaml` (schema `engine/schemas/onboarding.schema.yaml`): status `draft | in_review | approved`, a `revision` counter, and the sections `goal`, `profile`, `constraints`, `assumptions`, `open_questions` (+ `approval` once approved). `goals.md` and `program.draft.yaml` beside it are derived previews. On approval the sections are frozen into `programs/<id>/program.yaml` under the optional `spec` key, with a placeholder curriculum.

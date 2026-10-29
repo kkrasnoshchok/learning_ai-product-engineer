@@ -52,3 +52,22 @@ One primary agent (Tutor) plus three optional, read-only subagents (Curriculum D
   events are produced. Misconceptions travel in event `--notes` and the lesson `Handoff` (no schema change).
 - **Network.** Only the Researcher has web tools (Claude `WebSearch`/`WebFetch`); the repo's code stays offline.
 - **Not in Phase 2:** program onboarding, curriculum research workflow, lesson lifecycle changes.
+
+## Research and curriculum engine (Phase 4)
+
+`scripts/learning_os/design.py` plus schemas `research-plan`, `research-registry`, `competency-map`, `curriculum`. State is
+files under `programs/<id>/design/` (plan, registry, domain competency map, curriculum draft, frozen `versions/`); briefs and
+learner views are computed on demand, so nothing derived is stored. The plan and curriculum reuse the onboarding pattern
+(draft -> in_review -> approved, revision counter, explicit confirmed approval of the reviewed revision) and add a content
+hash so edits after approval are detected. Checks are deterministic (graph integrity, references, evidence status,
+personalization rules, coverage, ordering, effort vs. deadline); the LLM only proposes content. Activation rewrites only
+`program.yaml` `competencies` + a `curriculum` pointer, keeps a backup of the previous file, and refuses to orphan logs or lessons.
+The engine makes no network calls: web research is done by the Researcher subagent with the host's own tools, and the
+engine only records and validates what is reported.
+- **Not in Phase 4:** lessons that consume modules, any real curriculum, a UI.
+
+### Phase 4 limitations and unverified behavior
+- No real web research was run; all tests use synthetic fixtures. The registry records what the Researcher reports and cannot check that a URL exists or that a source says what is claimed (the Tutor and learner must spot-check load-bearing sources).
+- Subagent and GUI behavior (Claude Desktop Code tab, Codex Desktop) was not exercised; only the CLI and file contracts are tested. Codex cannot enforce read-only subagents by sandbox, only by instruction.
+- Effort realism is a total-hours vs. deadline check; it does not model calendar gaps or review time beyond what the draft lists.
+- Lessons do not yet consume modules or objectives; the lesson lifecycle is unchanged.

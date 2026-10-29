@@ -39,6 +39,10 @@ docs/                         architecture, data formats, per-agent guides
 adapters/ .claude/commands/   thin optional shortcuts
 ```
 
+## From goal to curriculum
+
+`onboarding` (protocol 06) -> `research` (plan, review, sources) -> `curriculum` (competency map, personalization, review, approval, activation), protocol 07. Claude: `/research <id>`, `/curriculum <id>`; Codex: the matching prompts in `adapters/codex/prompts/`.
+
 ## The lesson loop
 
 ```

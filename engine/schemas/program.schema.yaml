@@ -125,6 +125,25 @@ properties:
         type: integer
         minimum: 1
         maximum: 365
+  curriculum:
+    type: object
+    additionalProperties: false
+    description: Pointer to the approved curriculum revision that produced `competencies`. Written only by `curriculum activate`.
+    required:
+      - revision
+      - activated
+      - snapshot
+    properties:
+      revision:
+        type: integer
+        minimum: 1
+      activated:
+        type: string
+        format: date
+      snapshot:
+        type: string
+        minLength: 1
+        maxLength: 200
   spec:
     type: object
     additionalProperties: false

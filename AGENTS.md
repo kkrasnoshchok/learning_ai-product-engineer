@@ -28,6 +28,7 @@ Read `engine/protocol/README.md`, then the step you are in:
 | "start a lesson on `<id>`" | `01-session-start.md`, then `02-lesson-flow.md` |
 | "assess me" / during a lesson | `03-assessment.md` |
 | "end / close the lesson" | `04-session-close.md` |
+| "plan research" / "design the curriculum" | `07-research-and-curriculum.md` (needs an approved onboarding) |
 | "new program" / "onboard me" | `06-program-onboarding.md`, then (in a new conversation, after approval) `05-program-authoring.md` |
 
 ## Roles and policies
@@ -45,4 +46,6 @@ python3 scripts/los.py close <id> --lesson N        # refresh derived state + va
 python3 scripts/los.py new-program <id> --title T   # scaffold
 python3 scripts/los.py validate [--program <id>]
 python3 scripts/los.py onboarding status|start|update|submit|show|approve|brief <id>   # protocol 06
+python3 scripts/los.py research init|plan-update|plan-submit|plan-approve|add|brief|status <id>   # protocol 07
+python3 scripts/los.py curriculum competencies-set|update|check|submit|approve|activate|brief|status <id>
 ```
